@@ -66,7 +66,20 @@ import discord
 # Discord Gateway
 # =============================================================================
 
+class DiscordGateway:
+    """
+    Manages all communication between the application and Discord.
 
+    This class owns the Discord client and is responsible for receiving
+    events from Discord and forwarding them to the rest of the application.
+
+    Main interface between Discord and the application.
+
+    Think of this class as an adapter.
+
+    Discord -> Gateway -> Application
+    Application -> Gateway -> Discord
+    """
 
     # -------------------------------------------------------------------------
     # Initialization
