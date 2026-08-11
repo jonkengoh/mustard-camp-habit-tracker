@@ -1,4 +1,21 @@
-'''Goal: Track specific discord
+'''
+Discord Gateway
+
+Provides communication between the application and Discord.
+
+Responsibilities:
+
+    - Connect to Discord
+
+    - Receive Discord events
+
+    - Forward events to the application layer
+
+    - Send messages back to Discord
+
+This module intentionally contains no business logic.
+
+Goal: Track specific discord
  username and record the FIRST message
  event instance for the current date.'''
 
@@ -49,15 +66,7 @@ import discord
 # Discord Gateway
 # =============================================================================
 
-class DiscordGateway:
-    """
-    Main interface between Discord and the application.
 
-    Think of this class as an adapter.
-
-    Discord -> Gateway -> Application
-    Application -> Gateway -> Discord
-    """
 
     # -------------------------------------------------------------------------
     # Initialization
