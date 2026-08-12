@@ -111,51 +111,53 @@ class DiscordGateway:
         """
 
 
-    # Create Discord client
+        # Create Discord client
 
-    # Configure intents
-    # Store references to application services
+        # Configure intents
+        self.intents = discord.Intents.default()
+        self.intents.message_content = True
+        # Store references to application services
 
-    # -------------------------------------------------------------------------
-    # Connection Lifecycle
-    # -------------------------------------------------------------------------
+        # -------------------------------------------------------------------------
+        # Connection Lifecycle
+        # -------------------------------------------------------------------------
 
-    # Connect to Discord
+        # Connect to Discord
 
-    # Disconnect gracefully
+        # Disconnect gracefully
 
-    # Handle startup
+        # Handle startup
 
-    # Handle shutdown
+        # Handle shutdown
 
-    # -------------------------------------------------------------------------
-    # Discord Event Listeners
-    # -------------------------------------------------------------------------
+        # -------------------------------------------------------------------------
+        # Discord Event Listeners
+        # -------------------------------------------------------------------------
 
-    # on_ready()
+        # on_ready()
 
-    # on_message()
+        # on_message()
 
-    # on_error()
+        # on_error()
 
-    # Future:
-    # on_interaction()
-    # on_member_join()
-    # on_member_remove()
+        # Future:
+        # on_interaction()
+        # on_member_join()
+        # on_member_remove()
 
-    # -------------------------------------------------------------------------
-    # Outgoing Messages
-    # -------------------------------------------------------------------------
+        # -------------------------------------------------------------------------
+        # Outgoing Messages
+        # -------------------------------------------------------------------------
 
-    # Send log message
+        # Send log message
 
-    # Send notification
+        # Send notification
 
-    # Send embed
+        # Send embed
 
-    # Future:
-    # Send summary
-    # Send leaderboard
+        # Future:
+        # Send summary
+        # Send leaderboard
 
 # =============================================================================
 # Internal Helper Functions
