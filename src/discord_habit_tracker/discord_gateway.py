@@ -85,6 +85,32 @@ class DiscordGateway:
     # Initialization
     # -------------------------------------------------------------------------
 
+
+    def __init__(self):
+
+        """
+
+        Initialize the Discord Gateway.
+
+        Responsibilities:
+
+            - Configure gateway intents
+
+            - Create the Discord client
+
+            - Prepare the gateway for startup
+
+        Does NOT:
+
+            - Connect to Discord
+
+            - Process events
+
+            - Start the bot
+
+        """
+
+
     # Create Discord client
 
     # Configure intents
