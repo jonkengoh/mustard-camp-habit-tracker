@@ -20,54 +20,54 @@ Current Status: 🚧 Phase 1 – Discord Gateway & Event Listener
 
 Phase 1 — Discord Gateway & Event Listener
 
-1. Project Setup
+1. Project Setup ✅
 
-[x] Create project repository
-[ ] Set up Python virtual environment
-[ ] Install discord.py
-[ ] Create .env file
-[ ] Configure .gitignore
-[ ] Verify project runs locally
+- Create project repository ✅
+- Set up Python virtual environment ✅
+- Install discord.py ✅
+- Create .env file ✅
+- Configure .gitignore ✅
+- Verify project runs locally ✅
 
 ⸻
 
 2. Discord Gateway
 
-[ ] Create DiscordGateway class
-[ ] Configure Discord Intents
-[ ] Load bot token from .env
-[ ] Connect to Discord
-[ ] Verify on_ready() is called
-[ ] Display bot information on startup
+- Create DiscordGateway class
+- Configure Discord Intents
+- Load bot token from .env
+- Connect to Discord
+- Verify on_ready() is called
+- Display bot information on startup
 
 ⸻
 
 3. Event Listener
 
-[ ] Register on_message() event
-[ ] Ignore messages sent by bots
-[ ] Ignore system messages
-[ ] Print received message information to the console
-[ ] Confirm every qualifying message is detected
+- Register on_message() event
+- Ignore messages sent by bots
+- Ignore system messages
+- Print received message information to the console
+- Confirm every qualifying message is detected
 
 ⸻
 
 4. Code Quality
 
-[ ] Organize project structure
-[ ] Add module documentation
-[ ] Add logging
-[ ] Add type hints
-[ ] Refactor for readability
+- Organize project structure
+- Add module documentation
+- Add logging
+- Add type hints
+- Refactor for readability
 
 ⸻
 
 Next Phase
 
-After the event listener is working, we’ll move on to:
+After the event listener is working, additional features would be:
 
-[ ] Activity Qualification Service
-[ ] First Message Detection
-[ ] Database Design
-[ ] Activity Repository
-[ ] Streak Engine
+- Activity Qualification Service
+- First Message Detection
+- Database Design
+- Activity Repository
+- Streak Engine
