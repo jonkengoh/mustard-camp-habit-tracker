@@ -86,7 +86,7 @@ class DiscordGateway:
     # -------------------------------------------------------------------------
 
 
-    def __init__(self):
+    def __init__(self, bot_token: str):
 
         """
 
@@ -110,12 +110,21 @@ class DiscordGateway:
 
         """
 
+        # Bot token
+        self._bot_token = bot_token
+
 
         # Create Discord client
 
+
         # Configure intents
-        self.intents = discord.Intents.default()
-        self.intents.message_content = True
+        intents = discord.Intents.default()
+
+        intents.message_content = True
+
+        self._client = discord.Client(intents=intents)
+
+
         # Store references to application services
 
         # -------------------------------------------------------------------------
@@ -139,11 +148,6 @@ class DiscordGateway:
         # on_message()
 
         # on_error()
-
-        # Future:
-        # on_interaction()
-        # on_member_join()
-        # on_member_remove()
 
         # -------------------------------------------------------------------------
         # Outgoing Messages
