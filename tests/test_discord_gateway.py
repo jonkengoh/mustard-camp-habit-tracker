@@ -1,4 +1,5 @@
 import discord
+from unittest.mock import AsyncMock
 
 from discord_habit_tracker.discord_gateway import DiscordGateway
 
@@ -25,3 +26,15 @@ def test_gateway_enables_message_content_intent():
     gateway = DiscordGateway("test-token")
 
     assert gateway._client.intents.message_content is True
+
+
+async def test_gateway_starts_client():
+    """Test that the Discord Gateway starts the Discord client."""
+
+    gateway = DiscordGateway("test-token")
+
+    gateway._client.start = AsyncMock()
+
+    await gateway.start()
+
+    gateway._client.start.assert_awaited_once_with("test-token")

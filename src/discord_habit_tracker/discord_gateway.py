@@ -127,17 +127,21 @@ class DiscordGateway:
 
         # Store references to application services
 
-        # -------------------------------------------------------------------------
-        # Connection Lifecycle
-        # -------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
+    # Connection Lifecycle
+    # -------------------------------------------------------------------------
 
-        # Connect to Discord
+    # Connect to Discord
+    async def start(self):
+        """Start the Discord Gateway."""
 
-        # Disconnect gracefully
+        await self._client.start(self._bot_token)
 
-        # Handle startup
+    # Disconnect gracefully
 
-        # Handle shutdown
+    # Handle startup
+
+    # Handle shutdown
 
         # -------------------------------------------------------------------------
         # Discord Event Listeners
