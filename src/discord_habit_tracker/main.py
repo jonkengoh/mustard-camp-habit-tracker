@@ -1,7 +1,18 @@
-def main():
+import asyncio
+
+from discord_habit_tracker.config import Config
+from discord_habit_tracker.discord_gateway import DiscordGateway
+
+
+async def main():
     """Application entry point."""
-    pass
+
+    config = Config()
+
+    gateway = DiscordGateway(config.bot_token)
+
+    await gateway.start()
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
