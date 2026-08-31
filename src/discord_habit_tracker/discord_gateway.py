@@ -59,7 +59,7 @@ import discord
 
 
 # Local application imports
-
+from discord_habit_tracker.models.message_event import MessageEvent
 
 
 # =============================================================================
@@ -86,7 +86,7 @@ class DiscordGateway:
     # -------------------------------------------------------------------------
 
 
-    def __init__(self, bot_token: str):
+    def __init__(self, bot_token: str, message_handler):
 
         """
 
@@ -114,15 +114,19 @@ class DiscordGateway:
         self._bot_token = bot_token
 
 
-        # Create Discord client
+        # Store message handler
+        self._message_handler = message_handler
 
 
         # Configure intents
         intents = discord.Intents.default()
-
         intents.message_content = True
 
+
+        # Create Discord client
         self._client = discord.Client(intents=intents)
+
+        self._client.event(self._on_message)
 
 
         # Store references to application services
@@ -143,29 +147,44 @@ class DiscordGateway:
 
     # Handle shutdown
 
-        # -------------------------------------------------------------------------
-        # Discord Event Listeners
-        # -------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
+    # Discord Event Listeners
+    # -------------------------------------------------------------------------
 
-        # on_ready()
+    # on_ready()
 
-        # on_message()
+    # on_message()
+    async def _on_message(self, message):
 
-        # on_error()
+        """Handle an incoming Discord message."""
 
-        # -------------------------------------------------------------------------
-        # Outgoing Messages
-        # -------------------------------------------------------------------------
+        event = MessageEvent(
 
-        # Send log message
+            user_id=message.author.id,
 
-        # Send notification
+            timestamp=message.created_at,
 
-        # Send embed
+        )
 
-        # Future:
-        # Send summary
-        # Send leaderboard
+        await self._message_handler(event)
+
+
+
+    # on_error()
+
+    # -------------------------------------------------------------------------
+    # Outgoing Messages
+    # -------------------------------------------------------------------------
+
+    # Send log message
+
+    # Send notification
+
+    # Send embed
+
+    # Future:
+    # Send summary
+    # Send leaderboard
 
 # =============================================================================
 # Internal Helper Functions
