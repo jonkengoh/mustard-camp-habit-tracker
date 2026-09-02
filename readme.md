@@ -33,7 +33,7 @@ Phase 1 — Discord Gateway & Event Listener
 
 2. Discord Gateway
 
-- Create DiscordGateway class
+- Create DiscordGateway class ✅
 - Configure Discord Intents
 - Load bot token from .env
 - Connect to Discord
@@ -44,7 +44,7 @@ Phase 1 — Discord Gateway & Event Listener
 
 3. Event Listener
 
-- Register on_message() event
+- Register on_message() event ✅
 - Ignore messages sent by bots
 - Ignore system messages
 - Print received message information to the console
