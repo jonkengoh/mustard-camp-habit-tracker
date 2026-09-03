@@ -70,5 +70,20 @@ class EventListener:
         if event.user_id != self._tracked_user_id:
             return
 
+
+        # Check if the user already has a message recorded for that date
+        has_message = await self._message_repository.has_message_for_date(
+            event.user_id,
+            event.timestamp.date(),
+        )
+
+        # If the user already has a message for that date, do not record it again
+        if has_message:
+            return
+
         # Forward the event to the repository for recording
         await self._message_repository.record(event)
+
+
+
+
