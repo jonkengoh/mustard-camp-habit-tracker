@@ -27,4 +27,9 @@ class Config:
         if not tracked_user_id:
             raise ValueError("DISCORD_TRACKED_USER_ID is not configured.")
 
-        self.tracked_user_id = int(tracked_user_id)
+        try:
+            self.tracked_user_id = int(tracked_user_id)
+        except ValueError as exc:
+            raise ValueError(
+                "DISCORD_TRACKED_USER_ID must be a valid integer."
+            ) from exc
