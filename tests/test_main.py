@@ -1,20 +1,49 @@
 from unittest.mock import AsyncMock, Mock
+
+import pytest
+
 import discord_habit_tracker.main as main
 
 
-async def test_main_creates_gateway_with_config_token(monkeypatch):
-    """Test that main creates the Gateway using the configured token."""
 
+@pytest.mark.asyncio
+async def test_main_wires_application_dependencies(monkeypatch):
+    # Arrange
     mock_config = Mock()
     mock_config.bot_token = "test-token"
+    mock_config.tracked_user_id = 12345
 
+    mock_repository = Mock()
+    mock_listener = Mock()
     mock_gateway = Mock()
     mock_gateway.start = AsyncMock()
 
-    monkeypatch.setattr(main, "Config", Mock(return_value=mock_config))
-    monkeypatch.setattr(main, "DiscordGateway", Mock(return_value=mock_gateway))
+    config_mock = Mock(return_value=mock_config)
+    repository_mock = Mock(return_value=mock_repository)
+    listener_mock = Mock(return_value=mock_listener)
+    gateway_mock = Mock(return_value=mock_gateway)
 
+    monkeypatch.setattr(main, "Config", config_mock)
+    monkeypatch.setattr(main, "MessageRepository", repository_mock)
+    monkeypatch.setattr(main, "EventListener", listener_mock)
+    monkeypatch.setattr(main, "DiscordGateway", gateway_mock)
+
+    # Act
     await main.main()
 
-    main.DiscordGateway.assert_called_once_with("test-token")
+    # Assert
+    config_mock.assert_called_once_with()
+
+    repository_mock.assert_called_once_with()
+
+    listener_mock.assert_called_once_with(
+        mock_repository,
+        12345,
+    )
+
+    gateway_mock.assert_called_once_with(
+        "test-token",
+        mock_listener.handle_message,
+    )
+
     mock_gateway.start.assert_awaited_once()
