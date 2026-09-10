@@ -44,3 +44,16 @@ def test_config_requires_tracked_user_id(monkeypatch):
 
     with pytest.raises(ValueError):
         Config()
+
+
+def test_config_requires_valid_tracked_user_id(monkeypatch):
+    """Test that an invalid tracked user ID raises ValueError."""
+
+    monkeypatch.setenv("DISCORD_TOKEN", "test-token")
+    monkeypatch.setenv("DISCORD_TRACKED_USER_ID", "not-a-number")
+
+    with pytest.raises(
+        ValueError,
+        match="DISCORD_TRACKED_USER_ID must be a valid integer.",
+    ):
+        Config()
