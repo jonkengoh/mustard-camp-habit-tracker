@@ -2,7 +2,7 @@
 
 A production-quality Discord bot that automatically tracks daily activity and habit streaks.
 
-> **Current Status:** 🚧 Phase 1 – Discord Gateway & Event Listener
+> **Current Status:** 🚧 Phase 1 – Core Event Pipeline Complete; Activity Qualification Next
 
 ---
 
@@ -22,11 +22,13 @@ EventListener
 MessageRepository
    ↓
 Storage (Planned)
+```
 
+The current implementation uses in-memory storage. Persistent storage will be introduced in a later phase.
 
 ## Components
 
-Discord Gateway
+#### Discord Gateway
 
 Responsible for communicating with Discord and translating Discord events into application-level events.
 
@@ -37,7 +39,7 @@ Responsible for communicating with Discord and translating Discord events into a
 * Forwards events to the application layer
 * Contains no business logic
 
-Event Listener
+#### Event Listener
 
 Responsible for application-level message processing and business logic.
 
@@ -47,7 +49,7 @@ Responsible for application-level message processing and business logic.
 * Handles first-message-of-the-day detection
 * Passes qualifying events to the repository
 
-Models
+#### Models
 
 Shared application-level data structures.
 
@@ -57,15 +59,41 @@ Shared application-level data structures.
 
 The model intentionally contains only the information required by the application rather than exposing Discord-specific objects.
 
-Message Repository
+#### Message Repository
 
 Responsible for persistence-related operations.
 
-* Records qualifying message events
-* Provides queries required by the application
+* Records message events
+* Checks whether a user has activity recorded for a given date
 * Abstracts the underlying storage implementation
 
-Storage technology has not yet been selected.
+The current implementation uses an in-memory set. Persistent storage technology has not yet been selected.
+
+#### Configuration
+
+Responsible for loading and validating application configuration.
+
+Current configuration includes:
+
+* Discord bot token
+* Tracked Discord user ID
+
+Environment variables are loaded from .env, while .env.example documents the required configuration without containing real credentials.
+
+#### Application Entry Point
+
+main.py acts as the composition root.
+
+It:
+
+* Creates the application configuration
+* Creates the repository
+* Creates the event listener
+* Creates the Discord gateway
+* Injects dependencies between components
+* Starts the Discord gateway
+
+This keeps dependency wiring separate from application logic.
 
 ⸻
 
@@ -95,41 +123,72 @@ Storage technology has not yet been selected.
 * Forward events to the application layer ✅
 * Keep Discord-specific logic isolated to the Gateway ✅
 
-#### 3. Event Listener
+#### 3. Discord Gateway
+
+* Create DiscordGateway class ✅
+* Configure Discord intents ✅
+* Load bot token from configuration ✅
+* Start the Discord client ✅
+* Register on_message handler ✅
+* Translate Discord messages into MessageEvent ✅
+* Forward events to the application layer ✅
+* Keep Discord-specific logic isolated to the Gateway ✅
+
+#### 4. Event Listener
 
 * Create EventListener ✅
 * Receive application-level MessageEvent objects ✅
 * Filter messages by tracked user ✅
 * Ignore untracked users ✅
-* Pass qualifying events to the repository ✅
-* Detect the first qualifying message of the day 🚧
+* Check whether activity already exists for the event date ✅
+* Record the first qualifying message of the day ✅
 
-#### 4. Repository
 
-* Define MessageRepository interface ✅
-* Record message events 🚧
-* Query whether a user has activity for a given date 🚧
+#### 5. Repository
+
+* Create MessageRepository ✅
+* Record message events ✅
+* Query whether a user has activity for a given date ✅
+* Use in-memory storage as the initial implementation ✅
 * Implement persistent storage ⏳
 
-#### 5. Testing
+#### 6. Application Wiring
+* Create application composition root ✅
+* Inject repository into Event Listener ✅
+* Inject Event Listener into Discord Gateway ✅
+* Start the Gateway from the application entry point ✅
+* Test dependency wiring ✅
+
+#### 7. Testing
 
 * Test Event Listener behavior ✅
 * Test tracked-user filtering ✅
 * Test untracked-user filtering ✅
-* Test repository interaction 🚧
-* Test first-message-of-the-day detection ⏳
-* Test Discord Gateway event translation ⏳
+* Test existing-activity detection ✅
+* Test first-message-of-the-day behavior ✅
+* Test repository recording ✅
+* Test repository date isolation ✅
+* Test Discord Gateway initialization ✅
+* Test Discord Gateway intents ✅
+* Test Discord Gateway startup ✅
+* Test Discord message → MessageEvent translation ✅
+* Test application dependency wiring ✅
+* Test real Event Listener → Repository message flow ✅
 
 ⸻
 
 ## Next Phase
 
-After the Discord Gateway and Event Listener foundations are complete, planned features include:
+The next development milestone is to make the concept of “activity” an explicit application-level concept rather than treating every tracked-user message as qualifying activity.
 
-* First Message Detection
+Planned work includes:
+
 * Activity Qualification Service
-* Database Design
+* Explicit activity qualification rules
+* Activity model / domain representation
 * Activity Repository
+* Persistent database design
+* SQLite or other storage implementation
 * Streak Engine
 * Notification Service
 * Multiple Users / Habits
@@ -139,6 +198,8 @@ After the Discord Gateway and Event Listener foundations are complete, planned f
 * Leaderboards
 * Achievements
 * Web Dashboard
+
+The architecture will continue to evolve as these requirements are introduced.
 
 ⸻
 
@@ -163,9 +224,19 @@ Key principles include:
 
 The project uses pytest and pytest-asyncio for automated testing.
 
-Current test suite:
+Current test suite: 21 tests passing ✅
 
-12 tests passing ✅
+Testing currently covers:
+
+* Configuration loading and validation
+* Discord Gateway initialization and startup
+* Discord message translation
+* Event Listener behavior
+* Tracked-user filtering
+* First-message-of-the-day detection
+* Repository behavior
+* Application dependency wiring
+* Integration between the Event Listener and Message Repository
 
 The test suite is expanded alongside new functionality to ensure existing behavior remains intact.
 
@@ -181,13 +252,21 @@ discord-habit-tracker/
 │       │   └── message_event.py
 │       ├── repositories/
 │       │   └── message_repository.py
+│       ├── config.py
 │       ├── discord_gateway.py
-│       └── event_listener.py
+│       ├── event_listener.py
+│       └── main.py
 │
 ├── tests/
-│   └── test_event_listener.py
+│   ├── test_config.py
+│   ├── test_discord_gateway.py
+│   ├── test_event_listener.py
+│   ├── test_main.py
+│   ├── test_message_flow.py
+│   └── test_repository.py
 │
 ├── .env
+├── .env.example
 ├── .gitignore
 ├── requirements.txt
 └── README.md
