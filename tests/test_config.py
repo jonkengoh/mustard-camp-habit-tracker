@@ -8,6 +8,7 @@ def test_config_loads_bot_token(monkeypatch):
 
     Change environment only for this test using setenv"""
     monkeypatch.setenv("DISCORD_TOKEN", "test-token")
+    monkeypatch.setenv("DISCORD_TRACKED_USER_ID", "12345")
 
     config = Config()
 
