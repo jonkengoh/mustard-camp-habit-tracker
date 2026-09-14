@@ -53,11 +53,18 @@ class EventListener:
     # Initialization
     # -------------------------------------------------------------------------
 
-    def __init__(self, message_repository, tracked_user_id):
+    def __init__(
+        self,
+        message_repository,
+        tracked_user_id,
+        activity_qualification_service,
+    ):
         """Initialize the Event Listener."""
+
 
         self._message_repository = message_repository
         self._tracked_user_id = tracked_user_id
+        self._activity_qualification_service = activity_qualification_service
 
     # -------------------------------------------------------------------------
     # Event Handlers
@@ -70,20 +77,21 @@ class EventListener:
         if event.user_id != self._tracked_user_id:
             return
 
+        # Check if the event qualifies as an activity
+        qualifies = await self._activity_qualification_service.qualifies(event)
 
-        # Check if the user already has a message recorded for that date
+        if not qualifies:
+            return
+
+        # Check if the user already has activity recorded for that date
         has_message = await self._message_repository.has_message_for_date(
             event.user_id,
             event.timestamp.date(),
         )
 
-        # If the user already has a message for that date, do not record it again
+        # If the user already has activity recorded for that date, do not record it again
         if has_message:
             return
 
         # Forward the event to the repository for recording
         await self._message_repository.record(event)
-
-
-
-
