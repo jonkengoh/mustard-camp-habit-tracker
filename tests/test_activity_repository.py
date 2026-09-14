@@ -1,5 +1,3 @@
-
-
 from datetime import date
 from discord_habit_tracker.models.activity_event import ActivityEvent
 from discord_habit_tracker.repositories.activity_repository import ActivityRepository
