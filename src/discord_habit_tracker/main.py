@@ -3,8 +3,10 @@ import asyncio
 from discord_habit_tracker.config import Config
 from discord_habit_tracker.discord_gateway import DiscordGateway
 from discord_habit_tracker.event_listener import EventListener
-from discord_habit_tracker.repositories.message_repository import MessageRepository
-
+from discord_habit_tracker.repositories.activity_repository import ActivityRepository
+from discord_habit_tracker.services.activity_qualification_service import (
+    ActivityQualificationService,
+)
 
 
 async def main():
@@ -12,11 +14,13 @@ async def main():
 
     config = Config()
 
-    repository = MessageRepository()
+    activity_repository = ActivityRepository()
+    qualification_service = ActivityQualificationService()
 
     listener = EventListener(
-        repository,
+        activity_repository,
         config.tracked_user_id,
+        qualification_service,
     )
 
     gateway = DiscordGateway(

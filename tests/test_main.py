@@ -14,17 +14,21 @@ async def test_main_wires_application_dependencies(monkeypatch):
     mock_config.tracked_user_id = 12345
 
     mock_repository = Mock()
+    mock_qualification_service = Mock()
     mock_listener = Mock()
     mock_gateway = Mock()
+
     mock_gateway.start = AsyncMock()
 
     config_mock = Mock(return_value=mock_config)
-    repository_mock = Mock(return_value=mock_repository)
+    activity_repository_mock = Mock(return_value=mock_repository)
+    qualification_service_mock = Mock(return_value=mock_qualification_service)
     listener_mock = Mock(return_value=mock_listener)
     gateway_mock = Mock(return_value=mock_gateway)
 
     monkeypatch.setattr(main, "Config", config_mock)
-    monkeypatch.setattr(main, "MessageRepository", repository_mock)
+    monkeypatch.setattr(main, "ActivityRepository", activity_repository_mock)
+    monkeypatch.setattr(main, "ActivityQualificationService", qualification_service_mock)
     monkeypatch.setattr(main, "EventListener", listener_mock)
     monkeypatch.setattr(main, "DiscordGateway", gateway_mock)
 
@@ -34,11 +38,13 @@ async def test_main_wires_application_dependencies(monkeypatch):
     # Assert
     config_mock.assert_called_once_with()
 
-    repository_mock.assert_called_once_with()
+    activity_repository_mock.assert_called_once_with()
+    qualification_service_mock.assert_called_once_with()
 
     listener_mock.assert_called_once_with(
         mock_repository,
         12345,
+        mock_qualification_service,
     )
 
     gateway_mock.assert_called_once_with(
