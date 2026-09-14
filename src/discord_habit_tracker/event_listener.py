@@ -33,6 +33,7 @@ Version:
 
 # Local application imports
 from discord_habit_tracker.models.message_event import MessageEvent
+from discord_habit_tracker.models.activity_event import ActivityEvent
 
 
 # =============================================================================
@@ -55,14 +56,12 @@ class EventListener:
 
     def __init__(
         self,
-        message_repository,
+        activity_repository,
         tracked_user_id,
         activity_qualification_service,
     ):
         """Initialize the Event Listener."""
-
-
-        self._message_repository = message_repository
+        self._activity_repository = activity_repository
         self._tracked_user_id = tracked_user_id
         self._activity_qualification_service = activity_qualification_service
 
@@ -84,14 +83,20 @@ class EventListener:
             return
 
         # Check if the user already has activity recorded for that date
-        has_message = await self._message_repository.has_message_for_date(
+        has_activity = await self._activity_repository.has_activity_for_date(
             event.user_id,
             event.timestamp.date(),
         )
 
         # If the user already has activity recorded for that date, do not record it again
-        if has_message:
+        if has_activity:
             return
 
-        # Forward the event to the repository for recording
-        await self._message_repository.record(event)
+        # Create an ActivityEvent from the qualifying message
+        activity = ActivityEvent(
+            user_id=event.user_id,
+            activity_date=event.timestamp.date(),
+        )
+
+        # Forward the activity to the repository for recording
+        await self._activity_repository.record(activity)

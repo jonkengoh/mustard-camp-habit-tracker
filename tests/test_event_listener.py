@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from unittest.mock import AsyncMock
 from discord_habit_tracker.event_listener import EventListener
 from discord_habit_tracker.models.message_event import MessageEvent
+from discord_habit_tracker.models.activity_event import ActivityEvent
 
 
 async def test_event_listener_handles_message():
@@ -17,9 +18,9 @@ async def test_event_listener_handles_message():
 
     mock_repository = AsyncMock()
 
-    mock_repository.has_message_for_date.return_value = False # Simulate that the user does not have a message for that date
+    mock_repository.has_activity_for_date.return_value = False
 
-    tracked_user_id=12345
+    tracked_user_id = 12345
 
     mock_qualification_service = AsyncMock()
     mock_qualification_service.qualifies.return_value = True
@@ -32,7 +33,12 @@ async def test_event_listener_handles_message():
 
     await listener.handle_message(event)
 
-    mock_repository.record.assert_awaited_once_with(event)
+    expected_activity = ActivityEvent(
+        user_id=event.user_id,
+        activity_date=event.timestamp.date(),
+    )
+
+    mock_repository.record.assert_awaited_once_with(expected_activity)
 
 
 async def test_event_listener_ignores_untracked_user():
@@ -63,8 +69,8 @@ async def test_event_listener_ignores_untracked_user():
     mock_repository.record.assert_not_awaited()  # Ensure that the record method was not called for a non-tracked user
 
 
-async def test_event_listener_checks_if_user_has_existing_message():
-    """When a tracked user sends a message, the EventListener should ask the repository whether that user already has a message recorded for that date."""
+async def test_event_listener_checks_if_user_has_existing_activity():
+    """When a tracked user sends a message, the EventListener should ask the repository whether that user already has an activity recorded for that date."""
 
     known_timestamp = datetime(2026, 8, 31, 12, 0, tzinfo=timezone.utc)
 
@@ -89,13 +95,13 @@ async def test_event_listener_checks_if_user_has_existing_message():
     await listener.handle_message(event)
 
 
-    mock_repository.has_message_for_date.assert_awaited_once_with(
+    mock_repository.has_activity_for_date.assert_awaited_once_with(
         event.user_id,
         event.timestamp.date()
     )
 
 
-async def test_event_listener_ignores_if_user_has_existing_message():
+async def test_event_listener_ignores_if_user_has_existing_activity():
     """When a tracked user has already sent a message on that date, the EventListener should not record the new event."""
 
     known_timestamp = datetime(2026, 8, 31, 12, 0, tzinfo=timezone.utc)

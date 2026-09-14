@@ -3,6 +3,8 @@ from datetime import datetime, timezone
 from discord_habit_tracker.event_listener import EventListener
 from discord_habit_tracker.models.message_event import MessageEvent
 from discord_habit_tracker.repositories.message_repository import MessageRepository
+from discord_habit_tracker.models.activity_event import ActivityEvent
+from discord_habit_tracker.repositories.activity_repository import ActivityRepository
 from discord_habit_tracker.services.activity_qualification_service import (
     ActivityQualificationService,
 )
@@ -12,13 +14,13 @@ async def test_first_message_is_recorded():
     """Test that the first message from the tracked user is recorded."""
 
     # Arrange
-    repository = MessageRepository()
+    repository = ActivityRepository()
     qualification_service = ActivityQualificationService()
 
     listener = EventListener(
         repository,
         tracked_user_id=12345,
-        activity_qualification_service=qualification_service
+        activity_qualification_service=qualification_service,
     )
 
     event = MessageEvent(
@@ -30,7 +32,7 @@ async def test_first_message_is_recorded():
     await listener.handle_message(event)
 
     # Assert
-    result = await repository.has_message_for_date(
+    result = await repository.has_activity_for_date(
         event.user_id,
         event.timestamp.date(),
     )
