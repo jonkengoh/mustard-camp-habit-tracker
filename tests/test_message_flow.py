@@ -3,6 +3,9 @@ from datetime import datetime, timezone
 from discord_habit_tracker.event_listener import EventListener
 from discord_habit_tracker.models.message_event import MessageEvent
 from discord_habit_tracker.repositories.message_repository import MessageRepository
+from discord_habit_tracker.services.activity_qualification_service import (
+    ActivityQualificationService,
+)
 
 
 async def test_first_message_is_recorded():
@@ -10,7 +13,13 @@ async def test_first_message_is_recorded():
 
     # Arrange
     repository = MessageRepository()
-    listener = EventListener(repository, tracked_user_id=12345)
+    qualification_service = ActivityQualificationService()
+
+    listener = EventListener(
+        repository,
+        tracked_user_id=12345,
+        activity_qualification_service=qualification_service
+    )
 
     event = MessageEvent(
         user_id=12345,

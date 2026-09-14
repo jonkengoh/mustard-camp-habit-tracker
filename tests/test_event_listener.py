@@ -21,7 +21,14 @@ async def test_event_listener_handles_message():
 
     tracked_user_id=12345
 
-    listener = EventListener(mock_repository, tracked_user_id)
+    mock_qualification_service = AsyncMock()
+    mock_qualification_service.qualifies.return_value = True
+
+    listener = EventListener(
+        mock_repository,
+        tracked_user_id,
+        mock_qualification_service,
+    )
 
     await listener.handle_message(event)
 
@@ -42,7 +49,14 @@ async def test_event_listener_ignores_untracked_user():
 
     tracked_user_id=67890
 
-    listener = EventListener(mock_repository, tracked_user_id)
+    mock_qualification_service = AsyncMock()
+    mock_qualification_service.qualifies.return_value = True
+
+    listener = EventListener(
+        mock_repository,
+        tracked_user_id,
+        mock_qualification_service,
+    )
 
     await listener.handle_message(event)
 
@@ -63,7 +77,14 @@ async def test_event_listener_checks_if_user_has_existing_message():
 
     tracked_user_id=12345
 
-    listener = EventListener(mock_repository, tracked_user_id)
+    mock_qualification_service = AsyncMock()
+    mock_qualification_service.qualifies.return_value = True
+
+    listener = EventListener(
+        mock_repository,
+        tracked_user_id,
+        mock_qualification_service,
+    )
 
     await listener.handle_message(event)
 
@@ -90,9 +111,74 @@ async def test_event_listener_ignores_if_user_has_existing_message():
 
     tracked_user_id=12345
 
-    listener = EventListener(mock_repository, tracked_user_id)
+    mock_qualification_service = AsyncMock()
+    mock_qualification_service.qualifies.return_value = True
+
+    listener = EventListener(
+        mock_repository,
+        tracked_user_id,
+        mock_qualification_service,
+    )
 
     await listener.handle_message(event)
 
     mock_repository.record.assert_not_awaited()  # Ensure that the record method was not called for a user who already has a message recorded for that date
 
+async def test_event_listener_checks_activity_qualification():
+    """The EventListener should ask whether a tracked message qualifies as activity."""
+
+    known_timestamp = datetime(2026, 8, 31, 12, 0, tzinfo=timezone.utc)
+
+    event = MessageEvent(
+        user_id=12345,
+        timestamp=known_timestamp,
+    )
+
+    mock_repository = AsyncMock()
+    mock_repository.has_message_for_date.return_value = False
+
+    mock_qualification_service = AsyncMock()
+    mock_qualification_service.qualifies.return_value = True
+
+    tracked_user_id = 12345
+
+    listener = EventListener(
+        mock_repository,
+        tracked_user_id,
+        mock_qualification_service,
+    )
+
+    await listener.handle_message(event)
+
+    mock_qualification_service.qualifies.assert_awaited_once_with(event)
+
+
+async def test_event_listener_ignores_non_qualifying_activity():
+    """The EventListener should not record a message that does not qualify as activity."""
+
+    known_timestamp = datetime(2026, 8, 31, 12, 0, tzinfo=timezone.utc)
+
+    event = MessageEvent(
+        user_id=12345,
+        timestamp=known_timestamp,
+    )
+
+    mock_repository = AsyncMock()
+    mock_qualification_service = AsyncMock()
+    mock_qualification_service.qualifies.return_value = False
+
+    tracked_user_id = 12345
+
+    listener = EventListener(
+        mock_repository,
+        tracked_user_id,
+        mock_qualification_service,
+    )
+
+    await listener.handle_message(event)
+
+    # Ensure that the qualifies method was called with the event
+    mock_qualification_service.qualifies.assert_awaited_once_with(event)
+    # Ensure that the repository methods were not called since the activity did not qualify
+    mock_repository.has_message_for_date.assert_not_awaited()
+    mock_repository.record.assert_not_awaited()
