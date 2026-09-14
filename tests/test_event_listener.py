@@ -1,6 +1,7 @@
 
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock
+
 from discord_habit_tracker.event_listener import EventListener
 from discord_habit_tracker.models.message_event import MessageEvent
 from discord_habit_tracker.models.activity_event import ActivityEvent
@@ -42,7 +43,7 @@ async def test_event_listener_handles_message():
 
 
 async def test_event_listener_ignores_untracked_user():
-    """Test that the EventListener can handle a MessageEvent and only records events for the tracked user."""
+    """Test that the EventListener only processes MessageEvents from the tracked user."""
 
     known_timestamp = datetime(2026, 8, 31, 12, 0, tzinfo=timezone.utc)
 
@@ -102,7 +103,7 @@ async def test_event_listener_checks_if_user_has_existing_activity():
 
 
 async def test_event_listener_ignores_if_user_has_existing_activity():
-    """When a tracked user has already sent a message on that date, the EventListener should not record the new event."""
+    """When a tracked user has already recorded an activity for that date, the EventListener should not record the new event."""
 
     known_timestamp = datetime(2026, 8, 31, 12, 0, tzinfo=timezone.utc)
 
@@ -113,7 +114,7 @@ async def test_event_listener_ignores_if_user_has_existing_activity():
 
     mock_repository = AsyncMock()
 
-    mock_repository.has_message_for_date.return_value = True  # Simulate that the user already has a message for that date
+    mock_repository.has_activity_for_date.return_value = True  # Simulate that the user already has an activity for that date
 
     tracked_user_id=12345
 
@@ -128,7 +129,7 @@ async def test_event_listener_ignores_if_user_has_existing_activity():
 
     await listener.handle_message(event)
 
-    mock_repository.record.assert_not_awaited()  # Ensure that the record method was not called for a user who already has a message recorded for that date
+    mock_repository.record.assert_not_awaited()  # Ensure that the record method was not called for a user who already has an activity recorded for that date
 
 async def test_event_listener_checks_activity_qualification():
     """The EventListener should ask whether a tracked message qualifies as activity."""
@@ -141,7 +142,7 @@ async def test_event_listener_checks_activity_qualification():
     )
 
     mock_repository = AsyncMock()
-    mock_repository.has_message_for_date.return_value = False
+    mock_repository.has_activity_for_date.return_value = False
 
     mock_qualification_service = AsyncMock()
     mock_qualification_service.qualifies.return_value = True
@@ -160,7 +161,7 @@ async def test_event_listener_checks_activity_qualification():
 
 
 async def test_event_listener_ignores_non_qualifying_activity():
-    """The EventListener should not record a message that does not qualify as activity."""
+    """The EventListener should not record activity that does not qualify."""
 
     known_timestamp = datetime(2026, 8, 31, 12, 0, tzinfo=timezone.utc)
 
@@ -186,5 +187,5 @@ async def test_event_listener_ignores_non_qualifying_activity():
     # Ensure that the qualifies method was called with the event
     mock_qualification_service.qualifies.assert_awaited_once_with(event)
     # Ensure that the repository methods were not called since the activity did not qualify
-    mock_repository.has_message_for_date.assert_not_awaited()
+    mock_repository.has_activity_for_date.assert_not_awaited()
     mock_repository.record.assert_not_awaited()
