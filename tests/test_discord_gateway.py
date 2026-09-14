@@ -2,7 +2,8 @@ import discord
 from unittest.mock import AsyncMock, Mock
 from datetime import datetime, timezone
 
-from discord_habit_tracker.discord_gateway import DiscordGateway, MessageEvent
+from discord_habit_tracker.discord_gateway import DiscordGateway
+from discord_habit_tracker.models.message_event import MessageEvent
 
 
 def test_gateway_initializes():
