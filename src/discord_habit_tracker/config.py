@@ -33,3 +33,11 @@ class Config:
             raise ValueError(
                 "DISCORD_TRACKED_USER_ID must be a valid integer."
             ) from exc
+
+        tracked_user_timezone = os.getenv("DISCORD_TRACKED_USER_TIMEZONE")
+        if not tracked_user_timezone:
+            raise ValueError(
+                "DISCORD_TRACKED_USER_TIMEZONE is not configured."
+            )
+
+        self.tracked_user_timezone = tracked_user_timezone

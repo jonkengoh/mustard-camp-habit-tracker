@@ -12,23 +12,27 @@ async def test_main_wires_application_dependencies(monkeypatch):
     mock_config = Mock()
     mock_config.bot_token = "test-token"
     mock_config.tracked_user_id = 12345
+    mock_config.tracked_user_timezone = "America/Chicago"
 
     mock_repository = Mock()
     mock_qualification_service = Mock()
     mock_listener = Mock()
     mock_gateway = Mock()
+    mock_date_resolver = Mock()
 
     mock_gateway.start = AsyncMock()
 
     config_mock = Mock(return_value=mock_config)
     activity_repository_mock = Mock(return_value=mock_repository)
     qualification_service_mock = Mock(return_value=mock_qualification_service)
+    date_resolver_mock = Mock(return_value=mock_date_resolver)
     listener_mock = Mock(return_value=mock_listener)
     gateway_mock = Mock(return_value=mock_gateway)
 
     monkeypatch.setattr(main, "Config", config_mock)
     monkeypatch.setattr(main, "ActivityRepository", activity_repository_mock)
     monkeypatch.setattr(main, "ActivityQualificationService", qualification_service_mock)
+    monkeypatch.setattr(main, "ActivityDateResolver", date_resolver_mock)
     monkeypatch.setattr(main, "EventListener", listener_mock)
     monkeypatch.setattr(main, "DiscordGateway", gateway_mock)
 
@@ -40,11 +44,14 @@ async def test_main_wires_application_dependencies(monkeypatch):
 
     activity_repository_mock.assert_called_once_with()
     qualification_service_mock.assert_called_once_with()
+    date_resolver_mock.assert_called_once_with()
 
     listener_mock.assert_called_once_with(
         mock_repository,
         12345,
         mock_qualification_service,
+        mock_date_resolver,
+        "America/Chicago",
     )
 
     gateway_mock.assert_called_once_with(

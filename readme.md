@@ -4,8 +4,50 @@ A production-quality Discord bot that automatically tracks daily activity and ha
 
 > **Current Status:** 🚧 Phase 1 – Core Activity Pipeline Complete
 
----
+## Project Roadmap
+```
+PHASE 1 — Core Activity Pipeline
+├── Discord Gateway              ✅
+├── MessageEvent                 ✅
+├── EventListener                ✅
+├── ActivityQualificationService ✅
+├── ActivityEvent                ✅
+├── ActivityRepository            ✅
+├── Application wiring            ✅
+└── Tests                         ✅
 
+PHASE 2 — Persistent Activity
+├── Define persistence behavior
+├── SQLite schema
+├── SQLite repository
+├── Persistence tests
+├── Application wiring
+└── Restart/persistence test
+
+PHASE 3 — Activity History
+├── Query activity dates
+├── Date-range history
+└── Basic activity statistics
+
+PHASE 4 — Streak Engine
+├── Current streak
+├── Longest streak
+└── Edge cases around dates/timezones
+
+PHASE 5 — Discord Commands
+├── !streak
+├── !history
+├── !stats
+└── Possibly slash commands
+
+PHASE 6 — Expansion
+├── Multiple users
+├── Multiple habits
+├── Configurable qualification rules
+├── Notifications
+├── Statistics/heatmaps
+└── Web dashboard
+```
 ## Architecture
 
 The project is structured around separating Discord-specific communication from application logic and persistence.
@@ -123,7 +165,7 @@ It:
 
 This keeps dependency wiring separate from application logic.
 
-⸻
+
 
 ## Project Progress
 
@@ -213,7 +255,7 @@ This keeps dependency wiring separate from application logic.
 * Test application dependency wiring ✅
 * Test Event Listener → Activity Repository integration ✅
 
-⸻
+
 
 ## Next Phase
 
@@ -240,7 +282,7 @@ Planned work includes:
 
 The architecture will continue to evolve as additional requirements are introduced.
 
-⸻
+
 
 ## Development Philosophy
 
@@ -258,7 +300,7 @@ Key principles include:
 * Small, incremental Git commits
 * Avoiding unnecessary abstractions until requirements justify them
 
-⸻
+
 
 ## Testing
 
@@ -285,7 +327,7 @@ Testing currently covers:
 
 The test suite is expanded alongside new functionality to ensure existing behavior remains intact.
 
-⸻
+
 
 ## Project Structure
 

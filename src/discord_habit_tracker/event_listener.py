@@ -59,11 +59,15 @@ class EventListener:
         activity_repository,
         tracked_user_id,
         activity_qualification_service,
+        activity_date_resolver,
+        tracked_user_timezone,
     ):
         """Initialize the Event Listener."""
         self._activity_repository = activity_repository
         self._tracked_user_id = tracked_user_id
         self._activity_qualification_service = activity_qualification_service
+        self._activity_date_resolver = activity_date_resolver
+        self._tracked_user_timezone = tracked_user_timezone
 
     # -------------------------------------------------------------------------
     # Event Handlers
@@ -82,10 +86,16 @@ class EventListener:
         if not qualifies:
             return
 
+        # Resolve the activity date using the tracked user's timezone
+        activity_date = self._activity_date_resolver.resolve(
+            event.timestamp,
+            self._tracked_user_timezone,
+        )
+
         # Check if the user already has activity recorded for that date
         has_activity = await self._activity_repository.has_activity_for_date(
             event.user_id,
-            event.timestamp.date(),
+            activity_date,
         )
 
         # If the user already has activity recorded for that date, do not record it again
@@ -95,7 +105,7 @@ class EventListener:
         # Create an ActivityEvent from the qualifying message
         activity = ActivityEvent(
             user_id=event.user_id,
-            activity_date=event.timestamp.date(),
+            activity_date=activity_date,
         )
 
         # Forward the activity to the repository for recording

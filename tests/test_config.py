@@ -58,3 +58,18 @@ def test_config_requires_valid_tracked_user_id(monkeypatch):
         match="DISCORD_TRACKED_USER_ID must be a valid integer.",
     ):
         Config()
+
+
+def test_config_loads_tracked_user_timezone(monkeypatch):
+    """Test that Config loads the tracked user's timezone."""
+
+    monkeypatch.setenv("DISCORD_TOKEN", "test-token")
+    monkeypatch.setenv("DISCORD_TRACKED_USER_ID", "12345")
+    monkeypatch.setenv(
+        "DISCORD_TRACKED_USER_TIMEZONE",
+        "America/Chicago",
+    )
+
+    config = Config()
+
+    assert config.tracked_user_timezone == "America/Chicago"

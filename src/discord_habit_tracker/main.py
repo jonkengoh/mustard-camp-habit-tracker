@@ -7,6 +7,9 @@ from discord_habit_tracker.repositories.activity_repository import ActivityRepos
 from discord_habit_tracker.services.activity_qualification_service import (
     ActivityQualificationService,
 )
+from discord_habit_tracker.services.activity_date_resolver import (
+    ActivityDateResolver,
+)
 
 
 async def main():
@@ -14,13 +17,18 @@ async def main():
 
     config = Config()
 
+    # Initialize application dependencies
     activity_repository = ActivityRepository()
     qualification_service = ActivityQualificationService()
+    date_resolver = ActivityDateResolver()
 
+    # Initialize the event listener and Discord gateway
     listener = EventListener(
         activity_repository,
         config.tracked_user_id,
         qualification_service,
+        date_resolver,
+        config.tracked_user_timezone,
     )
 
     gateway = DiscordGateway(

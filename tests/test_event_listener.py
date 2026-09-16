@@ -1,6 +1,6 @@
 
-from datetime import datetime, timezone
-from unittest.mock import AsyncMock
+from datetime import date, datetime, timezone
+from unittest.mock import AsyncMock, Mock
 
 from discord_habit_tracker.event_listener import EventListener
 from discord_habit_tracker.models.message_event import MessageEvent
@@ -13,11 +13,14 @@ async def test_event_listener_handles_message():
     known_timestamp = datetime(2026, 8, 31, 12, 0, tzinfo=timezone.utc)
 
     event = MessageEvent(
-        user_id=12345,
+        user_id = 12345,
         timestamp=known_timestamp,
     )
 
     mock_repository = AsyncMock()
+
+    mock_date_resolver = Mock()
+    mock_date_resolver.resolve.return_value = event.timestamp.date()
 
     mock_repository.has_activity_for_date.return_value = False
 
@@ -30,6 +33,8 @@ async def test_event_listener_handles_message():
         mock_repository,
         tracked_user_id,
         mock_qualification_service,
+        mock_date_resolver,
+        "Asia/Singapore",
     )
 
     await listener.handle_message(event)
@@ -48,13 +53,15 @@ async def test_event_listener_ignores_untracked_user():
     known_timestamp = datetime(2026, 8, 31, 12, 0, tzinfo=timezone.utc)
 
     event = MessageEvent(
-        user_id=12345,
+        user_id = 12345,
         timestamp=known_timestamp,
     )
 
     mock_repository = AsyncMock()
 
-    tracked_user_id=67890
+    mock_date_resolver = Mock()
+
+    tracked_user_id = 67890
 
     mock_qualification_service = AsyncMock()
     mock_qualification_service.qualifies.return_value = True
@@ -63,6 +70,8 @@ async def test_event_listener_ignores_untracked_user():
         mock_repository,
         tracked_user_id,
         mock_qualification_service,
+        mock_date_resolver,
+        "Asia/Singapore",
     )
 
     await listener.handle_message(event)
@@ -76,13 +85,16 @@ async def test_event_listener_checks_if_user_has_existing_activity():
     known_timestamp = datetime(2026, 8, 31, 12, 0, tzinfo=timezone.utc)
 
     event = MessageEvent(
-        user_id=12345,
+        user_id = 12345,
         timestamp=known_timestamp,
     )
 
     mock_repository = AsyncMock()
 
-    tracked_user_id=12345
+    mock_date_resolver = Mock()
+    mock_date_resolver.resolve.return_value = event.timestamp.date()
+
+    tracked_user_id = 12345
 
     mock_qualification_service = AsyncMock()
     mock_qualification_service.qualifies.return_value = True
@@ -91,15 +103,22 @@ async def test_event_listener_checks_if_user_has_existing_activity():
         mock_repository,
         tracked_user_id,
         mock_qualification_service,
+        mock_date_resolver,
+        "Asia/Singapore",
     )
 
     await listener.handle_message(event)
 
+    mock_date_resolver.resolve.assert_called_once_with(
+        event.timestamp,
+        "Asia/Singapore",
+    )
 
     mock_repository.has_activity_for_date.assert_awaited_once_with(
         event.user_id,
-        event.timestamp.date()
+        event.timestamp.date(),
     )
+
 
 
 async def test_event_listener_ignores_if_user_has_existing_activity():
@@ -108,15 +127,17 @@ async def test_event_listener_ignores_if_user_has_existing_activity():
     known_timestamp = datetime(2026, 8, 31, 12, 0, tzinfo=timezone.utc)
 
     event = MessageEvent(
-        user_id=12345,
+        user_id = 12345,
         timestamp=known_timestamp,
     )
 
     mock_repository = AsyncMock()
 
+    mock_date_resolver = Mock()
+
     mock_repository.has_activity_for_date.return_value = True  # Simulate that the user already has an activity for that date
 
-    tracked_user_id=12345
+    tracked_user_id = 12345
 
     mock_qualification_service = AsyncMock()
     mock_qualification_service.qualifies.return_value = True
@@ -125,6 +146,8 @@ async def test_event_listener_ignores_if_user_has_existing_activity():
         mock_repository,
         tracked_user_id,
         mock_qualification_service,
+        mock_date_resolver,
+        "Asia/Singapore",
     )
 
     await listener.handle_message(event)
@@ -137,7 +160,7 @@ async def test_event_listener_checks_activity_qualification():
     known_timestamp = datetime(2026, 8, 31, 12, 0, tzinfo=timezone.utc)
 
     event = MessageEvent(
-        user_id=12345,
+        user_id = 12345,
         timestamp=known_timestamp,
     )
 
@@ -147,12 +170,16 @@ async def test_event_listener_checks_activity_qualification():
     mock_qualification_service = AsyncMock()
     mock_qualification_service.qualifies.return_value = True
 
+    mock_date_resolver = Mock()
+
     tracked_user_id = 12345
 
     listener = EventListener(
         mock_repository,
         tracked_user_id,
         mock_qualification_service,
+        mock_date_resolver,
+        "Asia/Singapore",
     )
 
     await listener.handle_message(event)
@@ -166,13 +193,14 @@ async def test_event_listener_ignores_non_qualifying_activity():
     known_timestamp = datetime(2026, 8, 31, 12, 0, tzinfo=timezone.utc)
 
     event = MessageEvent(
-        user_id=12345,
+        user_id = 12345,
         timestamp=known_timestamp,
     )
 
     mock_repository = AsyncMock()
     mock_qualification_service = AsyncMock()
     mock_qualification_service.qualifies.return_value = False
+    mock_date_resolver = Mock()
 
     tracked_user_id = 12345
 
@@ -180,6 +208,8 @@ async def test_event_listener_ignores_non_qualifying_activity():
         mock_repository,
         tracked_user_id,
         mock_qualification_service,
+        mock_date_resolver,
+        "Asia/Singapore",
     )
 
     await listener.handle_message(event)
@@ -189,3 +219,57 @@ async def test_event_listener_ignores_non_qualifying_activity():
     # Ensure that the repository methods were not called since the activity did not qualify
     mock_repository.has_activity_for_date.assert_not_awaited()
     mock_repository.record.assert_not_awaited()
+
+
+async def test_event_listener_uses_resolved_activity_date():
+    """Test that the EventListener uses the user's local activity date."""
+
+    known_timestamp = datetime(
+        2026,
+        9,
+        17,
+        4,
+        30,
+        tzinfo=timezone.utc,
+    )
+
+    event = MessageEvent(
+        user_id = 12345,
+        timestamp=known_timestamp,
+    )
+
+    mock_repository = AsyncMock()
+    mock_repository.has_activity_for_date.return_value = False
+
+    mock_qualification_service = AsyncMock()
+    mock_qualification_service.qualifies.return_value = True
+
+    mock_date_resolver = Mock()
+    mock_date_resolver.resolve.return_value = date(2026, 9, 16)
+
+    listener = EventListener(
+        mock_repository,
+        tracked_user_id = 12345,
+        activity_qualification_service=mock_qualification_service,
+        activity_date_resolver=mock_date_resolver,
+        tracked_user_timezone="America/Chicago",
+    )
+
+    await listener.handle_message(event)
+
+    mock_date_resolver.resolve.assert_called_once_with(
+        event.timestamp,
+        "America/Chicago",
+    )
+
+    mock_repository.has_activity_for_date.assert_awaited_once_with(
+        event.user_id,
+        date(2026, 9, 16),
+    )
+
+    mock_repository.record.assert_awaited_once_with(
+        ActivityEvent(
+            user_id=event.user_id,
+            activity_date=date(2026, 9, 16),
+        )
+    )
