@@ -26,3 +26,12 @@ class ActivityRepository:
         """Return whether the user has activity recorded for the date."""
 
         return (user_id, activity_date) in self._activities
+
+    async def get_activity_dates(self, user_id: int) -> set[date]:
+        """Return all recorded activity dates for the user."""
+
+        return {
+            activity_date
+            for stored_user_id, activity_date in self._activities
+            if stored_user_id == user_id
+        }

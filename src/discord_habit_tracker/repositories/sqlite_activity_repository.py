@@ -59,6 +59,23 @@ class SQLiteActivityRepository:
 
         return cursor.fetchone() is not None
 
+    async def get_activity_dates(self, user_id: int) -> set[date]:
+        """Return all recorded activity dates for the user."""
+
+        cursor = self._connection.execute(
+            """
+            SELECT activity_date
+            FROM activities
+            WHERE user_id = ?
+            """,
+            (user_id,),
+        )
+
+        return {
+            date.fromisoformat(row[0])
+            for row in cursor.fetchall()
+        }
+
     def close(self):
         """Close the database connection."""
 

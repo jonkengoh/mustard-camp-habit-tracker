@@ -100,3 +100,31 @@ def test_repository_can_be_closed(tmp_path):
     repository.close()
 
     assert repository._connection is None
+
+
+@pytest.mark.asyncio
+async def test_activity_dates_can_be_retrieved_for_user():
+    """Test that all recorded activity dates can be retrieved for a user."""
+
+    repository = SQLiteActivityRepository(":memory:")
+
+    await repository.record(
+        ActivityEvent(
+            user_id=12345,
+            activity_date=date(2026, 9, 16),
+        )
+    )
+
+    await repository.record(
+        ActivityEvent(
+            user_id=12345,
+            activity_date=date(2026, 9, 17),
+        )
+    )
+
+    result = await repository.get_activity_dates(12345)
+
+    assert result == {
+        date(2026, 9, 16),
+        date(2026, 9, 17),
+    }
