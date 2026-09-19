@@ -7,6 +7,9 @@ from discord_habit_tracker.event_listener import EventListener
 from discord_habit_tracker.repositories.sqlite_activity_repository import SQLiteActivityRepository
 from discord_habit_tracker.services.activity_qualification_service import ActivityQualificationService
 from discord_habit_tracker.services.activity_date_resolver import ActivityDateResolver
+from discord_habit_tracker.commands.streak_command import StreakCommand
+from discord_habit_tracker.services.activity_stats_service import ActivityStatsService
+from discord_habit_tracker.services.streak_service import StreakService
 
 
 
@@ -24,7 +27,19 @@ async def main():
     )
 
     qualification_service = ActivityQualificationService()
+
     date_resolver = ActivityDateResolver()
+
+    streak_service = StreakService()
+
+    activity_stats_service = ActivityStatsService(
+        activity_repository,
+        streak_service,
+    )
+
+    streak_command = StreakCommand(
+        activity_stats_service,
+    )
 
     # Initialize the event listener and Discord gateway
     listener = EventListener(
@@ -38,6 +53,8 @@ async def main():
     gateway = DiscordGateway(
         config.bot_token,
         listener.handle_message,
+        streak_command,
+        config.tracked_user_timezone,
     )
 
     try:
