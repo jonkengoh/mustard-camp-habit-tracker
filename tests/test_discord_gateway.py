@@ -168,3 +168,26 @@ async def test_discord_gateway_streak_command_delegates_to_handler():
     gateway._streak_slash_command.handle.assert_awaited_once_with(
         interaction,
     )
+
+
+async def test_gateway_syncs_application_commands():
+
+    """Test that the gateway syncs application commands with Discord."""
+
+    gateway = DiscordGateway(
+
+        bot_token="test-token",
+
+        message_handler=Mock(),
+
+        streak_command=Mock(),
+
+        timezone_name="Asia/Singapore",
+
+    )
+
+    gateway._tree.sync = AsyncMock()
+
+    await gateway._client.setup_hook()
+
+    gateway._tree.sync.assert_awaited_once()

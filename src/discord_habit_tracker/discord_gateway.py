@@ -52,6 +52,7 @@ class DiscordGateway:
         self._tree = discord.app_commands.CommandTree(self._client)
 
         self._client.event(self._on_message)
+        self._client.setup_hook = self._setup_hook
 
         self._streak_slash_command = DiscordStreakSlashCommand(
             streak_command,
@@ -84,3 +85,8 @@ class DiscordGateway:
         )
 
         await self._message_handler(event)
+
+    async def _setup_hook(self):
+        """Sync application commands with Discord."""
+
+        await self._tree.sync()
