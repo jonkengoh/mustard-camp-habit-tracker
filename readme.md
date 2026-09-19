@@ -17,30 +17,35 @@ PHASE 1 — Core Activity Pipeline
 └── Tests                         ✅
 
 PHASE 2 — Persistent Activity
-├── Define persistence behavior
-├── SQLite schema
-├── SQLite repository
-├── Persistence tests
-├── Application wiring
-└── Restart/persistence test
+├── Define persistence behavior  ✅
+├── SQLite schema                ✅
+├── SQLite repository             ✅
+├── Persistence tests             ✅
+├── Application wiring            ✅
+└── Restart/persistence test      ✅
 
 PHASE 3 — Activity History
-├── Query activity dates
-├── Date-range history
-└── Basic activity statistics
+├── Query activity dates          ✅
+├── Date-range history            ⬜
+└── Basic activity statistics     ⬜
 
 PHASE 4 — Streak Engine
-├── Current streak
-├── Longest streak
-└── Edge cases around dates/timezones
+├── Current streak                ✅
+├── Longest streak                ✅
+└── Edge cases around dates/timezones ✅
 
-PHASE 5 — Discord Commands
+PHASE 5 — Activity Statistics
+├── ActivityStatsService          ✅
+├── Current streak coordination   ✅
+└── Longest streak coordination   ✅
+
+PHASE 6 — Discord Commands
 ├── !streak
 ├── !history
 ├── !stats
 └── Possibly slash commands
 
-PHASE 6 — Expansion
+PHASE 7 — Expansion
 ├── Multiple users
 ├── Multiple habits
 ├── Configurable qualification rules
@@ -60,26 +65,33 @@ DiscordGateway
 MessageEvent
    ↓
 EventListener
-   ↓
-ActivityQualificationService
-   ↓
-ActivityEvent
-   ↓
+   ├── ActivityQualificationService
+   ├── ActivityDateResolver
+   └── ActivityRepository
+           ↓
+      ActivityEvent
+           ↓
+     SQLite Storage
+
+
 ActivityRepository
-   ↓
-Storage (In-Memory)
+        ↓
+  Activity Dates
+        ↓
+ActivityStatsService
+        ↓
+   StreakService
+   ├── Current Streak
+   └── Longest Streak
 ```
 
-The current implementation uses in-memory storage. Persistent storage will be introduced in a later phase.
+The Discord gateway is responsible only for translating Discord-specific events into application-level events. The Event Listener coordinates application behavior, while domain services handle qualification, date resolution, and streak calculations.
 
-The architecture intentionally separates the incoming Discord event from the application’s domain representation:
+Activity is persisted using SQLite. The repository abstracts storage operations from the rest of the application.
 
-* MessageEvent represents an incoming Discord message.
-* ActivityQualificationService determines whether the event qualifies as activity.
-* ActivityEvent represents the resulting domain-level activity.
-* ActivityRepository handles persistence of recorded activity.
+The statistics layer retrieves activity history through the repository and delegates streak calculations to the Streak Service.
 
-This keeps Discord-specific details separate from application and persistence logic.
+This separation keeps Discord-specific details, application orchestration, business logic, and persistence independently testable.
 
 ## Components
 
@@ -101,6 +113,7 @@ Responsible for orchestrating application-level event processing.
 * Receives MessageEvent
 * Identifies the tracked user
 * Passes events to the activity qualification service
+* Resolves the message timestamp to the tracked user’s local calendar date
 * Checks whether activity already exists for the event date
 * Creates an ActivityEvent for qualifying activity
 * Passes recorded activity to the repository
@@ -114,6 +127,17 @@ The current implementation uses a deliberately simple rule:
 * Every tracked Discord message qualifies as activity
 
 The service is isolated from the Event Listener so that qualification rules can evolve without coupling them to event handling or persistence.
+
+### Activity Date Resolver
+
+Responsible for converting a message timestamp into the tracked user’s local calendar date.
+
+* Uses the configured IANA timezone
+* Converts timestamps using Python’s zoneinfo
+* Produces a calendar date for ActivityEvent
+* Keeps timezone handling separate from event processing
+
+This ensures that activity is recorded according to the user’s local day rather than the Discord server or system timezone.
 
 ### Models
 
@@ -134,9 +158,44 @@ Responsible for persistence-related operations.
 
 * Records ActivityEvent instances
 * Checks whether a user has activity recorded for a given date
+* Retrieves recorded activity dates for a user
 * Abstracts the underlying storage implementation
 
-The current implementation uses an in-memory set. Persistent storage technology has not yet been selected.
+The project currently contains both an in-memory ActivityRepository implementation for lightweight testing and a SQLiteActivityRepository for persistent application storage.
+
+### SQLite Activity Repository
+
+Provides persistent storage using SQLite.
+
+* Stores activity by user ID and calendar date
+* Enforces one activity record per user per date
+* Supports activity existence checks
+* Retrieves activity dates
+* Persists data across application restarts
+* Handles database connection lifecycle
+
+SQLite stores calendar dates using ISO-8601 YYYY-MM-DD strings.
+
+### Streak Service
+
+Responsible for calculating activity streaks from recorded activity dates.
+
+* Calculates the current streak
+* Calculates the longest streak
+* Handles missing activity dates
+* Handles empty activity history
+
+The service contains streak calculation logic without depending on repositories or Discord.
+
+### Activity Stats Service
+
+Coordinates activity history retrieval and statistics calculation.
+
+* Retrieves activity dates for a user
+* Delegates current streak calculation to StreakService
+* Delegates longest streak calculation to StreakService
+
+This keeps repository access separate from the underlying streak calculation logic.
 
 ### Configuration
 
@@ -146,6 +205,7 @@ Current configuration includes:
 
 * Discord bot token
 * Tracked Discord user ID
+* Tracked user timezone
 
 Environment variables are loaded from .env, while .env.example documents the required configuration without containing real credentials.
 
@@ -156,12 +216,15 @@ main.py acts as the composition root.
 It:
 
 * Creates the application configuration
-* Creates the activity repository
+* Creates the application data directory
+* Creates the SQLite activity repository
 * Creates the activity qualification service
+* Creates the activity date resolver
 * Creates the event listener
 * Creates the Discord gateway
 * Injects dependencies between components
 * Starts the Discord gateway
+* Closes the database connection when the application stops
 
 This keeps dependency wiring separate from application logic.
 
@@ -224,65 +287,89 @@ This keeps dependency wiring separate from application logic.
 * Create ActivityRepository ✅
 * Record ActivityEvent instances ✅
 * Query whether a user has activity for a given date ✅
-* Use in-memory storage as the initial implementation ✅
-* Implement persistent storage ⏳
+* Retrieve activity dates for a user ✅
+* Use in-memory storage for lightweight tests ✅
+* Add SQLite persistence ✅
+* Enforce one activity per user and calendar date ✅
+* Test persistence across repository instances ✅
+* Test database lifecycle and cleanup ✅
 
-#### 7. Application Wiring
+#### 7. Timezone-Aware Activity Dates
+
+* Create ActivityDateResolver ✅
+* Resolve timestamps using IANA timezones ✅
+* Load tracked user timezone from configuration ✅
+* Integrate date resolution into Event Listener ✅
+* Test timezone-specific date boundaries ✅
+
+#### 8. Application Wiring
 * Create application composition root ✅
 * Inject ActivityRepository into Event Listener ✅
 * Inject ActivityQualificationService into Event Listener ✅
+* Inject ActivityDateResolver into Event Listener ✅
 * Inject Event Listener into Discord Gateway ✅
 * Start the Gateway from the application entry point ✅
+* Close the SQLite repository when the application stops ✅
 * Test application dependency wiring ✅
 
-#### 8. Testing
+### Phase 2 — Activity History & Statistics
 
-* Test configuration loading and validation ✅
-* Test Discord Gateway initialization ✅
-* Test Discord Gateway intents ✅
-* Test Discord Gateway startup ✅
-* Test Discord message → MessageEvent translation ✅
-* Test Event Listener behavior ✅
-* Test tracked-user filtering ✅
-* Test untracked-user filtering ✅
-* Test activity qualification ✅
-* Test existing-activity detection ✅
-* Test first-activity-of-the-day behavior ✅
-* Test ActivityEvent construction ✅
-* Test Activity Repository recording ✅
-* Test Activity Repository date isolation ✅
-* Test Activity Repository user isolation ✅
-* Test application dependency wiring ✅
-* Test Event Listener → Activity Repository integration ✅
+#### 9. Activity History
 
+* Add repository support for retrieving activity dates ✅
+* Return activity dates for a specific user ✅
+* Test activity date retrieval ✅
+* Add date-range history queries ⬜
 
+#### 10. Streak Engine
+
+* Create StreakService ✅
+* Calculate current streak ✅
+* Calculate longest streak ✅
+* Handle missing activity dates ✅
+* Handle empty activity history ✅
+* Test streak calculation behavior ✅
+
+#### 11. Activity Statistics
+
+* Create ActivityStatsService ✅
+* Coordinate activity history retrieval ✅
+* Coordinate current streak calculation ✅
+* Coordinate longest streak calculation ✅
+* Test statistics service coordination ✅
+
+### Phase 3 — Discord Commands
+
+* Add !streak ⬜
+* Add !history ⬜
+* Add !stats ⬜
+* Consider slash commands ⬜
+
+### Phase 4 — Expansion
+
+* Multiple users ⬜
+* Multiple habits ⬜
+* Configurable qualification rules ⬜
+* Notifications ⬜
+* Statistics / heatmaps ⬜
+* Achievements ⬜
+* Web dashboard ⬜
 
 ## Next Phase
 
-The next development milestone is to introduce persistent storage and begin deriving useful streak information from recorded activity.
+The next development milestone is to expose the application’s activity statistics through Discord.
 
 Planned work includes:
 
-* Persistent database design
-* SQLite or other storage implementation
-* Repository persistence tests
-* Streak Engine
-* Current streak calculation
-* Longest streak calculation
-* Activity history queries
-* Discord commands for streak/status/history
-* Multiple Users / Habits
-* Configurable activity rules
-* Activity Statistics
-* Heatmaps
-* Leaderboards
-* Achievements
-* Notification Service
-* Web Dashboard
+* Discord command architecture
+* Current streak command
+* Longest streak command
+* Activity history command
+* Basic statistics command
+* Command testing
+* Keeping Discord command handling separate from application services
 
-The architecture will continue to evolve as additional requirements are introduced.
-
-
+Additional functionality can be introduced as requirements emerge rather than adding abstractions prematurely.
 
 ## Development Philosophy
 
@@ -296,19 +383,15 @@ Key principles include:
 * Asynchronous programming
 * Clear application boundaries
 * Discord-specific logic isolated from business logic
-* Persistence isolated behind repository interfaces
+* Persistence isolated behind repository implementations
 * Small, incremental Git commits
 * Avoiding unnecessary abstractions until requirements justify them
-
-
 
 ## Testing
 
 The project uses pytest and pytest-asyncio for automated testing.
 
-Current test suite: 26 tests passing ✅
-
-Testing currently covers:
+Current test suite: 47 tests passing ✅
 
 Testing currently covers:
 
@@ -320,14 +403,18 @@ Testing currently covers:
 * Activity qualification
 * First-activity-of-the-day detection
 * ActivityEvent behavior
-* Activity Repository behavior
-* Date and user isolation
+* In-memory Activity Repository behavior
+* SQLite Activity Repository behavior
+* Activity persistence across repository instances
+* Activity date retrieval
+* Timezone-aware activity date resolution
 * Application dependency wiring
 * Integration between the Event Listener and Activity Repository
+* Current streak calculation
+* Longest streak calculation
+* Activity statistics coordination
 
 The test suite is expanded alongside new functionality to ensure existing behavior remains intact.
-
-
 
 ## Project Structure
 
@@ -339,23 +426,34 @@ discord-habit-tracker/
 │       │   ├── activity_event.py
 │       │   └── message_event.py
 │       ├── repositories/
-│       │   └── activity_repository.py
+│       │   ├── activity_repository.py
+│       │   └── sqlite_activity_repository.py
 │       ├── services/
-│       │   └── activity_qualification_service.py
+│       │   ├── activity_date_resolver.py
+│       │   ├── activity_qualification_service.py
+│       │   ├── activity_stats_service.py
+│       │   └── streak_service.py
 │       ├── config.py
 │       ├── discord_gateway.py
 │       ├── event_listener.py
 │       └── main.py
 │
 ├── tests/
+│   ├── test_activity_date_resolver.py
 │   ├── test_activity_event.py
+│   ├── test_activity_qualification.py
 │   ├── test_activity_repository.py
+│   ├── test_activity_stats_service.py
 │   ├── test_config.py
 │   ├── test_discord_gateway.py
 │   ├── test_event_listener.py
 │   ├── test_main.py
 │   ├── test_message_flow.py
-│   └── test_activity_qualification.py
+│   ├── test_sqlite_activity_repository.py
+│   └── test_streak_service.py
+│
+├── data/
+│   └── activity_tracker.db
 │
 ├── .env
 ├── .env.example
