@@ -1,6 +1,7 @@
-import discord
-from unittest.mock import AsyncMock, Mock
 from datetime import datetime, timezone
+from unittest.mock import AsyncMock, Mock
+
+import discord
 
 from discord_habit_tracker.discord_gateway import DiscordGateway
 from discord_habit_tracker.models.message_event import MessageEvent
@@ -141,3 +142,29 @@ def test_discord_gateway_registers_streak_command():
     command = registered_commands[0]
 
     assert command.name == "streak"
+
+
+async def test_discord_gateway_streak_command_delegates_to_handler():
+    """Test that the streak command delegates to the Discord adapter."""
+    streak_command = Mock()
+
+    gateway = DiscordGateway(
+        bot_token="test-token",
+        message_handler=Mock(),
+        streak_command=streak_command,
+        timezone_name="Asia/Singapore",
+    )
+
+    gateway._streak_slash_command = Mock()
+    gateway._streak_slash_command.handle = AsyncMock()
+
+    interaction = Mock()
+
+    registered_commands = gateway._tree.get_commands()
+    command = registered_commands[0]
+
+    await command.callback(interaction)
+
+    gateway._streak_slash_command.handle.assert_awaited_once_with(
+        interaction,
+    )
