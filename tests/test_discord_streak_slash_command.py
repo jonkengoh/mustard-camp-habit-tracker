@@ -3,9 +3,11 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
+from discord_habit_tracker.commands import streak_command
 from discord_habit_tracker.commands.discord_streak_slash_command import (
     DiscordStreakSlashCommand,
 )
+from discord_habit_tracker.services import current_date_resolver
 
 
 @pytest.mark.asyncio
@@ -21,11 +23,22 @@ async def test_streak_slash_command_responds_with_streaks():
         return_value="Current streak: 5 days\nLongest streak: 12 days"
     )
 
-    handler = DiscordStreakSlashCommand(streak_command)
+    current_date_resolver = Mock()
+    current_date_resolver.resolve.return_value = date(2026, 9, 20)
+
+    handler = DiscordStreakSlashCommand(
+        streak_command,
+        current_date_resolver,
+        "Asia/Singapore",
+    )
+
 
     await handler.handle(
         interaction,
-        date(2026, 9, 20),
+    )
+
+    current_date_resolver.resolve.assert_called_once_with(
+        "Asia/Singapore",
     )
 
     streak_command.handle.assert_awaited_once_with(

@@ -1,65 +1,29 @@
-'''
-Discord Gateway
-
-Provides communication between the application and Discord.
-
-Responsibilities:
-
-    - Connect to Discord
-
-    - Receive Discord events
-
-    - Forward events to the application layer
-
-    - Send messages back to Discord
-
-This module intentionally contains no business logic.
-
-Goal: Track specific discord
- username and record the FIRST message
- event instance for the current date.'''
-
 """
-discord_gateway.py
+Discord gateway adapter.
 
-Purpose:
-    Responsible for communicating with Discord.
+Responsible for communicating between Discord and the application layer.
 
 Responsibilities:
-    - Connect to Discord Gateway
-    - Register event listeners
-    - Receive Discord events
-    - Forward events to the application layer
-    - Send responses back to Discord when requested
+    - Configure and start the Discord client
+    - Register Discord event listeners
+    - Translate Discord events into application events
+    - Register Discord application commands
+    - Forward command interactions to the application layer
 
-Non-Responsibilities:
-    - Business logic
-    - Database operations
-    - Streak calculations
-    - Activity qualification
-    - Statistics generation
-
-Author:
-    Jonathan Goh
-
-Version:
-    v0.1
+This module contains no business logic.
 """
 
 # =============================================================================
 # Imports
 # =============================================================================
 
-# Standard library imports
-
-
-# Third-party imports
-# (discord.py, dotenv, etc.)
 import discord
 
-
-# Local application imports
+from discord_habit_tracker.commands.discord_streak_slash_command import (
+    DiscordStreakSlashCommand,
+)
 from discord_habit_tracker.models.message_event import MessageEvent
+from discord_habit_tracker.services.current_date_resolver import CurrentDateResolver
 
 
 # =============================================================================
@@ -67,143 +31,56 @@ from discord_habit_tracker.models.message_event import MessageEvent
 # =============================================================================
 
 class DiscordGateway:
-    """
-    Manages all communication between the application and Discord.
+    """Adapter between Discord and the application layer."""
 
-    This class owns the Discord client and is responsible for receiving
-    events from Discord and forwarding them to the rest of the application.
+    def __init__(
+        self,
+        bot_token: str,
+        message_handler,
+        streak_command,
+        timezone_name: str,
+    ):
+        """Initialize the Discord gateway."""
 
-    Main interface between Discord and the application.
-
-    Think of this class as an adapter.
-
-    Discord -> Gateway -> Application
-    Application -> Gateway -> Discord
-    """
-
-    # -------------------------------------------------------------------------
-    # Initialization
-    # -------------------------------------------------------------------------
-
-
-    def __init__(self, bot_token: str, message_handler):
-
-        """
-
-        Initialize the Discord Gateway.
-
-        Responsibilities:
-
-            - Configure gateway intents
-
-            - Create the Discord client
-
-            - Prepare the gateway for startup
-
-        Does NOT:
-
-            - Connect to Discord
-
-            - Process events
-
-            - Start the bot
-
-        """
-
-        # Bot token
         self._bot_token = bot_token
-
-
-        # Store message handler
         self._message_handler = message_handler
 
-
-        # Configure intents
         intents = discord.Intents.default()
         intents.message_content = True
 
-
-        # Create Discord client
         self._client = discord.Client(intents=intents)
+        self._tree = discord.app_commands.CommandTree(self._client)
 
         self._client.event(self._on_message)
 
+        self._streak_slash_command = DiscordStreakSlashCommand(
+            streak_command,
+            CurrentDateResolver(),
+            timezone_name,
+        )
 
-        # Store references to application services
+        async def streak(interaction: discord.Interaction):
+            await self._streak_slash_command.handle(interaction)
 
-    # -------------------------------------------------------------------------
-    # Connection Lifecycle
-    # -------------------------------------------------------------------------
+        self._tree.add_command(
+            discord.app_commands.Command(
+                name="streak",
+                description="Show your current and longest activity streaks.",
+                callback=streak,
+            )
+        )
 
-    # Connect to Discord
     async def start(self):
-        """Start the Discord Gateway."""
+        """Start the Discord client."""
 
         await self._client.start(self._bot_token)
 
-    # Disconnect gracefully
-
-    # Handle startup
-
-    # Handle shutdown
-
-    # -------------------------------------------------------------------------
-    # Discord Event Listeners
-    # -------------------------------------------------------------------------
-
-    # on_ready()
-
-    # on_message()
     async def _on_message(self, message):
-
-        """Handle an incoming Discord message."""
+        """Translate a Discord message into an application event."""
 
         event = MessageEvent(
-
             user_id=message.author.id,
-
             timestamp=message.created_at,
-
         )
 
         await self._message_handler(event)
-
-
-
-    # on_error()
-
-    # -------------------------------------------------------------------------
-    # Outgoing Messages
-    # -------------------------------------------------------------------------
-
-    # Send log message
-
-    # Send notification
-
-    # Send embed
-
-    # Future:
-    # Send summary
-    # Send leaderboard
-
-# =============================================================================
-# Internal Helper Functions
-# =============================================================================
-
-# Convert Discord objects into application objects
-
-# Validate incoming data
-
-# Utility functions
-
-
-
-# =============================================================================
-# Entry Point
-# =============================================================================
-
-# Create gateway
-
-# Connect bot
-
-# Handle shutdown signals

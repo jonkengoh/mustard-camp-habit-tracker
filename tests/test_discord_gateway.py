@@ -9,7 +9,12 @@ from discord_habit_tracker.models.message_event import MessageEvent
 def test_gateway_initializes():
     """Test that the Discord Gateway initializes successfully."""
 
-    gateway = DiscordGateway("test-token", Mock())
+    gateway = DiscordGateway(
+        "test-token",
+        message_handler=Mock(),
+        streak_command=Mock(),
+        timezone_name="Asia/Singapore"
+    )
 
     assert gateway is not None
 
@@ -17,7 +22,12 @@ def test_gateway_initializes():
 def test_gateway_creates_discord_client():
     """Test that the Discord Gateway creates a Discord client."""
 
-    gateway = DiscordGateway("test-token", Mock())
+    gateway = DiscordGateway(
+        "test-token",
+        message_handler=Mock(),
+        streak_command=Mock(),
+        timezone_name="Asia/Singapore",
+    )
 
     assert isinstance(gateway._client, discord.Client)
 
@@ -25,7 +35,12 @@ def test_gateway_creates_discord_client():
 def test_gateway_enables_message_content_intent():
     """Test that the Discord Gateway enables the message content intent."""
 
-    gateway = DiscordGateway("test-token", Mock())
+    gateway = DiscordGateway(
+        "test-token",
+        message_handler=Mock(),
+        streak_command=Mock(),
+        timezone_name="Asia/Singapore",
+    )
 
     assert gateway._client.intents.message_content is True
 
@@ -33,7 +48,12 @@ def test_gateway_enables_message_content_intent():
 async def test_gateway_starts_client():
     """Test that the Discord Gateway starts the Discord client."""
 
-    gateway = DiscordGateway("test-token", Mock())
+    gateway = DiscordGateway(
+        "test-token",
+        message_handler=Mock(),
+        streak_command=Mock(),
+        timezone_name="Asia/Singapore",
+    )
 
     gateway._client.start = AsyncMock()
 
@@ -43,14 +63,29 @@ async def test_gateway_starts_client():
 
 
 def test_on_message_registers_client_event(monkeypatch):
-
     """Test that the Gateway registers its message handler with the client."""
 
     mock_client = Mock()
+    mock_tree = Mock()
 
-    monkeypatch.setattr(discord, "Client", Mock(return_value=mock_client))
+    monkeypatch.setattr(
+        discord,
+        "Client",
+        Mock(return_value=mock_client),
+    )
 
-    gateway = DiscordGateway("test-token", Mock())
+    monkeypatch.setattr(
+        discord.app_commands,
+        "CommandTree",
+        Mock(return_value=mock_tree),
+    )
+
+    gateway = DiscordGateway(
+        bot_token="test-token",
+        message_handler=Mock(),
+        streak_command=Mock(),
+        timezone_name="Asia/Singapore",
+    )
 
     mock_client.event.assert_called_once_with(gateway._on_message)
 
@@ -76,9 +111,33 @@ async def test_translate_forward_discord_message():
     mock_handler = AsyncMock()
 
     # Gateway initialize
-    gateway = DiscordGateway("test-token", mock_handler)
+    gateway = DiscordGateway(
+        "test-token",
+        mock_handler,
+        streak_command=Mock(),
+        timezone_name="Asia/Singapore",
+    )
 
     await gateway._on_message(mock_message)
 
 
     mock_handler.assert_awaited_once_with(expected_event)
+
+
+def test_discord_gateway_registers_streak_command():
+    streak_command = Mock()
+
+    gateway = DiscordGateway(
+        bot_token="test-token",
+        message_handler=Mock(),
+        streak_command=streak_command,
+        timezone_name="Asia/Singapore",
+    )
+
+    registered_commands = gateway._tree.get_commands()
+
+    assert len(registered_commands) == 1
+
+    command = registered_commands[0]
+
+    assert command.name == "streak"
