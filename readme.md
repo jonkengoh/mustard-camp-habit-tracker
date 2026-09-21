@@ -2,7 +2,7 @@
 
 A production-quality Discord bot that automatically tracks daily activity and habit streaks.
 
-> **Current Status:** 🚧 Phase 1 – Core Activity Pipeline Complete
+> **Current Status:** 🚧 Phase 3 – Discord Activity Tracking Integration Complete
 
 ## Project Roadmap
 ```
@@ -16,43 +16,42 @@ PHASE 1 — Core Activity Pipeline
 ├── Application wiring            ✅
 └── Tests                         ✅
 
-PHASE 2 — Persistent Activity
-├── Define persistence behavior  ✅
+PHASE 2 — Persistent Activity & Streaks
 ├── SQLite schema                ✅
 ├── SQLite repository             ✅
 ├── Persistence tests             ✅
-├── Application wiring            ✅
-└── Restart/persistence test      ✅
-
-PHASE 3 — Activity History
-├── Query activity dates          ✅
-├── Date-range history            ⬜
-└── Basic activity statistics     ⬜
-
-PHASE 4 — Streak Engine
+├── Activity date retrieval       ✅
+├── Timezone-aware dates          ✅
 ├── Current streak                ✅
 ├── Longest streak                ✅
-└── Edge cases around dates/timezones ✅
-
-PHASE 5 — Activity Statistics
 ├── ActivityStatsService          ✅
-├── Current streak coordination   ✅
-└── Longest streak coordination   ✅
+└── Application wiring            ✅
 
-PHASE 6 — Discord Commands
-├── !streak
-├── !history
-├── !stats
-└── Possibly slash commands
+PHASE 3 — Discord Commands
+├── StreakCommand                 ✅
+├── Discord streak command adapter ✅
+├── CurrentDateResolver            ✅
+├── Slash command registration     ✅
+├── Slash command synchronization  ✅
+├── Live /streak verification      ✅
+└── Discord activity tracking      ✅
 
-PHASE 7 — Expansion
-├── Multiple users
-├── Multiple habits
-├── Configurable qualification rules
-├── Notifications
-├── Statistics/heatmaps
-└── Web dashboard
+PHASE 4 — Activity History & Statistics
+├── Date-range history            ⬜
+├── Activity history command      ⬜
+├── Basic statistics command     ⬜
+└── Additional activity metrics  ⬜
+
+PHASE 5 — Expansion
+├── Multiple users                ⬜
+├── Multiple habits               ⬜
+├── Configurable qualification rules ⬜
+├── Notifications                 ⬜
+├── Statistics / heatmaps         ⬜
+├── Achievements                  ⬜
+└── Web dashboard                 ⬜
 ```
+
 ## Architecture
 
 The project is structured around separating Discord-specific communication from application logic and persistence.
@@ -74,9 +73,11 @@ EventListener
      SQLite Storage
 
 
-ActivityRepository
+Discord Slash Command
         ↓
-  Activity Dates
+DiscordStreakSlashCommand
+        ↓
+   StreakCommand
         ↓
 ActivityStatsService
         ↓
@@ -91,7 +92,10 @@ Activity is persisted using SQLite. The repository abstracts storage operations 
 
 The statistics layer retrieves activity history through the repository and delegates streak calculations to the Streak Service.
 
+The Discord command layer follows the same separation principle: Discord interactions are handled by an adapter, while command behavior is implemented independently of Discord.
+
 This separation keeps Discord-specific details, application orchestration, business logic, and persistence independently testable.
+
 
 ## Components
 
@@ -100,10 +104,12 @@ This separation keeps Discord-specific details, application orchestration, busin
 Responsible for communicating with Discord and translating Discord events into application-level events.
 
 * Connects to Discord
-* Configures Discord intents
+* Configures required Discord intents
 * Receives Discord messages
 * Converts Discord messages into MessageEvent
 * Forwards events to the application layer
+* Registers Discord application commands
+* Synchronizes application commands with Discord
 * Contains no business logic
 
 ### Event Listener
@@ -138,6 +144,17 @@ Responsible for converting a message timestamp into the tracked user’s local c
 * Keeps timezone handling separate from event processing
 
 This ensures that activity is recorded according to the user’s local day rather than the Discord server or system timezone.
+
+### Current Date Resolver
+
+Responsible for resolving the current calendar date in the configured timezone.
+
+* Uses the configured IANA timezone
+* Obtains the current timezone-aware timestamp
+* Produces the local calendar date
+* Keeps current-date resolution separate from Discord command handling
+
+This allows commands such as /streak to calculate streaks according to the tracked user’s local day rather than the machine’s local timezone.
 
 ### Models
 
@@ -197,6 +214,30 @@ Coordinates activity history retrieval and statistics calculation.
 
 This keeps repository access separate from the underlying streak calculation logic.
 
+### Streak Command
+
+Provides application-level behavior for the streak command.
+
+* Receives a user ID and current date
+* Retrieves current and longest streaks through ActivityStatsService
+* Formats the streak information into a response
+* Contains no Discord-specific logic
+
+### Discord Streak Slash Command
+
+Adapts the application-level streak command to Discord interactions.
+
+* Receives a Discord interaction
+* Resolves the current date using the configured timezone
+* Passes the Discord user’s ID to StreakCommand
+* Sends the resulting response through the Discord interaction
+* Keeps Discord-specific interaction handling separate from application logic
+
+The command is exposed through Discord as:
+```
+/streak
+```
+
 ### Configuration
 
 Responsible for loading and validating application configuration.
@@ -220,6 +261,9 @@ It:
 * Creates the SQLite activity repository
 * Creates the activity qualification service
 * Creates the activity date resolver
+* Creates the streak service
+* Creates the activity statistics service
+* Creates the streak command
 * Creates the event listener
 * Creates the Discord gateway
 * Injects dependencies between components
@@ -252,6 +296,7 @@ This keeps dependency wiring separate from application logic.
 * Load bot token from configuration ✅
 * Start the Discord client ✅
 * Register on_message handler ✅
+* Register on_ready handler ✅
 * Translate Discord messages into MessageEvent ✅
 * Forward events to the application layer ✅
 * Keep Discord-specific logic isolated to the Gateway ✅
@@ -340,12 +385,35 @@ This keeps dependency wiring separate from application logic.
 
 ### Phase 3 — Discord Commands
 
-* Add !streak ⬜
-* Add !history ⬜
-* Add !stats ⬜
-* Consider slash commands ⬜
+#### 12. Streak Command
 
-### Phase 4 — Expansion
+* Create StreakCommand ✅
+* Keep command behavior independent of Discord ✅
+* Create DiscordStreakSlashCommand adapter ✅
+* Create CurrentDateResolver ✅
+* Register /streak application command ✅
+* Synchronize application commands with Discord ✅
+* Test command registration and invocation ✅
+* Verify /streak against live Discord activity ✅
+
+#### 13. Live Activity Tracking
+
+* Install/invite the Discord bot to a server ✅
+* Configure required Message Content intent ✅
+* Verify Discord Gateway connection ✅
+* Verify Discord message events are received ✅
+* Verify activity is persisted from live Discord messages ✅
+* Verify /streak reads persisted activity ✅
+
+#### Phase 4 — Activity Histor & Statistics
+
+* Add date-range history queries ⬜
+* Add /history command ⬜
+* Add basic statistics functionality ⬜
+* Add /stats command ⬜
+* Test new command behavior ⬜
+
+#### Phase 5 — Expansion
 
 * Multiple users ⬜
 * Multiple habits ⬜
@@ -371,6 +439,31 @@ Planned work includes:
 
 Additional functionality can be introduced as requirements emerge rather than adding abstractions prematurely.
 
+## Running the Bot
+
+The project currently uses a src layout and can be run from the repository root with:
+```bash
+PYTHONPATH=src python -m discord_habit_tracker.main
+```
+
+Before starting the bot, configure the required environment variables in .env:
+```
+DISCORD_TOKEN=your_bot_token
+DISCORD_TRACKED_USER_ID=your_discord_user_id
+DISCORD_TRACKED_USER_TIMEZONE=Asia/Singapore
+```
+
+The Discord bot must have the required message-related intents enabled in the Discord Developer Portal.
+
+The bot must also be installed in the target Discord server with the appropriate permissions and application-command scope.
+
+Once running, the bot listens for qualifying activity from the configured tracked user and records the first qualifying activity for each local calendar day.
+
+The current Discord command is:
+```
+/streak
+```
+
 ## Development Philosophy
 
 The project is being developed incrementally with an emphasis on learning and maintainability.
@@ -391,12 +484,13 @@ Key principles include:
 
 The project uses pytest and pytest-asyncio for automated testing.
 
-Current test suite: 47 tests passing ✅
+Current test suite: 53 tests passing ✅
 
 Testing currently covers:
 
 * Configuration loading and validation
 * Discord Gateway initialization and startup
+* Discord event handler registration
 * Discord message translation
 * Event Listener behavior
 * Tracked-user filtering
@@ -408,11 +502,15 @@ Testing currently covers:
 * Activity persistence across repository instances
 * Activity date retrieval
 * Timezone-aware activity date resolution
+* Current date resolution
 * Application dependency wiring
 * Integration between the Event Listener and Activity Repository
 * Current streak calculation
 * Longest streak calculation
 * Activity statistics coordination
+* Streak command behavior
+* Discord streak command invocation
+* Discord application command registration
 
 The test suite is expanded alongside new functionality to ensure existing behavior remains intact.
 
@@ -422,6 +520,9 @@ The test suite is expanded alongside new functionality to ensure existing behavi
 discord-habit-tracker/
 ├── src/
 │   └── discord_habit_tracker/
+│       ├── commands/
+│       │   ├── discord_streak_slash_command.py
+│       │   └── streak_command.py
 │       ├── models/
 │       │   ├── activity_event.py
 │       │   └── message_event.py
@@ -432,6 +533,7 @@ discord-habit-tracker/
 │       │   ├── activity_date_resolver.py
 │       │   ├── activity_qualification_service.py
 │       │   ├── activity_stats_service.py
+│       │   ├── current_date_resolver.py
 │       │   └── streak_service.py
 │       ├── config.py
 │       ├── discord_gateway.py
@@ -444,12 +546,18 @@ discord-habit-tracker/
 │   ├── test_activity_qualification.py
 │   ├── test_activity_repository.py
 │   ├── test_activity_stats_service.py
+│   ├── test_activity.py
 │   ├── test_config.py
+│   ├── test_current_date_resolver.py
+│   ├── test_database.py
 │   ├── test_discord_gateway.py
+│   ├── test_discord_streak_slash_command.py
 │   ├── test_event_listener.py
 │   ├── test_main.py
+│   ├── test_message_event.py
 │   ├── test_message_flow.py
 │   ├── test_sqlite_activity_repository.py
+│   ├── test_streak_command.py
 │   └── test_streak_service.py
 │
 ├── data/
