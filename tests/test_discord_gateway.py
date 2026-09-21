@@ -88,7 +88,7 @@ def test_on_message_registers_client_event(monkeypatch):
         timezone_name="Asia/Singapore",
     )
 
-    mock_client.event.assert_called_once_with(gateway._on_message)
+    mock_client.event.assert_any_call(gateway.on_message)
 
 
 async def test_translate_forward_discord_message():
@@ -119,7 +119,7 @@ async def test_translate_forward_discord_message():
         timezone_name="Asia/Singapore",
     )
 
-    await gateway._on_message(mock_message)
+    await gateway.on_message(mock_message)
 
 
     mock_handler.assert_awaited_once_with(expected_event)

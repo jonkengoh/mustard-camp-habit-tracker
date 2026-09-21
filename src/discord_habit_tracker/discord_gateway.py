@@ -46,12 +46,18 @@ class DiscordGateway:
         self._message_handler = message_handler
 
         intents = discord.Intents.default()
+        intents.messages = True
         intents.message_content = True
+
+        print("Messages intent:", intents.messages)
+        print("Message content intent:", intents.message_content)
 
         self._client = discord.Client(intents=intents)
         self._tree = discord.app_commands.CommandTree(self._client)
 
-        self._client.event(self._on_message)
+        self._client.event(self.on_message)
+        print("Registered on_message handler")
+        self._client.event(self.on_ready)
         self._client.setup_hook = self._setup_hook
 
         self._streak_slash_command = DiscordStreakSlashCommand(
@@ -74,10 +80,17 @@ class DiscordGateway:
     async def start(self):
         """Start the Discord client."""
 
+        print("Starting Discord client...")
         await self._client.start(self._bot_token)
+        print("Discord client stopped.")
 
-    async def _on_message(self, message):
+    async def on_message(self, message):
         """Translate a Discord message into an application event."""
+
+
+        print(
+            f"Received message from {message.author.id}: {message.content}"
+        )
 
         event = MessageEvent(
             user_id=message.author.id,
@@ -86,7 +99,14 @@ class DiscordGateway:
 
         await self._message_handler(event)
 
+    async def on_ready(self):
+        """Handle the Discord client becoming ready."""
+
+        print(f"Logged in as {self._client.user}")
+
     async def _setup_hook(self):
         """Sync application commands with Discord."""
 
+        print("Starting command sync...")
         await self._tree.sync()
+        print("Command sync complete.")
