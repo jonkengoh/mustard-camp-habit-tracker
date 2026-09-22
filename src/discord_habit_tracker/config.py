@@ -22,16 +22,19 @@ class Config:
 
         self.bot_token = bot_token
 
-        tracked_user_id = os.getenv("DISCORD_TRACKED_USER_ID")
+        tracked_user_ids = os.getenv("DISCORD_TRACKED_USER_IDS")
 
-        if not tracked_user_id:
-            raise ValueError("DISCORD_TRACKED_USER_ID is not configured.")
+        if not tracked_user_ids:
+            raise ValueError("DISCORD_TRACKED_USER_IDS is not configured.")
 
         try:
-            self.tracked_user_id = int(tracked_user_id)
+            self.tracked_user_ids = {
+                int(user_id.strip())
+                for user_id in tracked_user_ids.split(",")
+            }
         except ValueError as exc:
             raise ValueError(
-                "DISCORD_TRACKED_USER_ID must be a valid integer."
+                "DISCORD_TRACKED_USER_IDS must contain valid integers."
             ) from exc
 
         tracked_user_timezone = os.getenv("DISCORD_TRACKED_USER_TIMEZONE")
