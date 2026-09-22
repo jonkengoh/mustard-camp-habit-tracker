@@ -57,14 +57,14 @@ class EventListener:
     def __init__(
         self,
         activity_repository,
-        tracked_user_id,
+        tracked_user_ids,
         activity_qualification_service,
         activity_date_resolver,
         tracked_user_timezone,
     ):
         """Initialize the Event Listener."""
         self._activity_repository = activity_repository
-        self._tracked_user_id = tracked_user_id
+        self._tracked_user_ids = tracked_user_ids
         self._activity_qualification_service = activity_qualification_service
         self._activity_date_resolver = activity_date_resolver
         self._tracked_user_timezone = tracked_user_timezone
@@ -77,7 +77,7 @@ class EventListener:
         """Handle an incoming MessageEvent."""
 
         # Check if the event is from the tracked user
-        if event.user_id != self._tracked_user_id:
+        if event.user_id not in self._tracked_user_ids:
             return
 
         # Check if the event qualifies as an activity

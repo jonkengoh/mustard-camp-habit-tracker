@@ -21,7 +21,7 @@ async def test_first_message_is_recorded():
 
     listener = EventListener(
         repository,
-        tracked_user_id=12345,
+        tracked_user_ids={12345},
         activity_qualification_service=qualification_service,
         activity_date_resolver=date_resolver,
         tracked_user_timezone="Asia/Singapore",
