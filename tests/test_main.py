@@ -7,7 +7,7 @@ async def test_main_wires_application_dependencies(monkeypatch):
     # Arrange
     mock_config = Mock()
     mock_config.bot_token = "test-token"
-    mock_config.tracked_user_id = 12345
+    mock_config.tracked_user_ids = {12345}
     mock_config.tracked_user_timezone = "America/Chicago"
 
     mock_repository = Mock()
@@ -67,7 +67,7 @@ async def test_main_wires_application_dependencies(monkeypatch):
 
     listener_mock.assert_called_once_with(
         mock_repository,
-        12345,
+        {12345},
         mock_qualification_service,
         mock_date_resolver,
         "America/Chicago",
@@ -98,7 +98,7 @@ async def test_main_closes_repository_when_gateway_stops(monkeypatch):
     # Arrange
     mock_config = Mock()
     mock_config.bot_token = "test-token"
-    mock_config.tracked_user_id = 12345
+    mock_config.tracked_user_ids = {12345}
     mock_config.tracked_user_timezone = "America/Chicago"
 
     mock_repository = Mock()

@@ -37,7 +37,7 @@ def test_config_loads_tracked_user_ids(monkeypatch):
     assert config.tracked_user_ids == {12345, 67890}
 
 
-def test_config_requires_tracked_user_id(monkeypatch):
+def test_config_requires_tracked_user_ids(monkeypatch):
     """Test that a missing tracked user ID raises ValueError."""
 
     monkeypatch.setenv("DISCORD_TOKEN", "test-token")
@@ -47,7 +47,7 @@ def test_config_requires_tracked_user_id(monkeypatch):
         Config()
 
 
-def test_config_requires_valid_tracked_user_id(monkeypatch):
+def test_config_requires_valid_tracked_user_ids(monkeypatch):
     """Test that an invalid tracked user ID raises ValueError."""
 
     monkeypatch.setenv("DISCORD_TOKEN", "test-token")

@@ -44,7 +44,7 @@ async def main():
     # Initialize the event listener and Discord gateway
     listener = EventListener(
         activity_repository,
-        config.tracked_user_id,
+        config.tracked_user_ids,
         qualification_service,
         date_resolver,
         config.tracked_user_timezone,
