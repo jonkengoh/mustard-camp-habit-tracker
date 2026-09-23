@@ -98,6 +98,7 @@ async def test_translate_forward_discord_message():
     known_timestamp = datetime(2026, 8, 31, 12, 0, tzinfo=timezone.utc)
 
     mock_message = Mock()
+    mock_message.guild.id = 999
     mock_message.author.id = 12345
     mock_message.created_at = known_timestamp
 
@@ -105,6 +106,7 @@ async def test_translate_forward_discord_message():
 
     # Construct event
     expected_event = MessageEvent(
+        guild_id=999,
         user_id=12345,
         timestamp=known_timestamp,
     )

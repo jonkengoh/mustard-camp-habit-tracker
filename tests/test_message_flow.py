@@ -28,6 +28,7 @@ async def test_first_message_is_recorded():
     )
 
     event = MessageEvent(
+        guild_id=999,
         user_id=12345,
         timestamp=datetime(2026, 8, 31, 12, 0, tzinfo=timezone.utc),
     )

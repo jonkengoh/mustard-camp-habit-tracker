@@ -15,6 +15,7 @@ async def test_event_listener_handles_message():
     known_timestamp = datetime(2026, 8, 31, 12, 0, tzinfo=timezone.utc)
 
     event = MessageEvent(
+        guild_id=999,
         user_id = 12345,
         timestamp=known_timestamp,
     )
@@ -40,6 +41,7 @@ async def test_event_listener_handles_message():
     await listener.handle_message(event)
 
     expected_activity = ActivityEvent(
+        guild_id=event.guild_id,
         user_id=event.user_id,
         activity_date=event.timestamp.date(),
     )
@@ -53,6 +55,7 @@ async def test_event_listener_ignores_untracked_user():
     known_timestamp = datetime(2026, 8, 31, 12, 0, tzinfo=timezone.utc)
 
     event = MessageEvent(
+        guild_id=999,
         user_id = 12345,
         timestamp=known_timestamp,
     )
@@ -85,6 +88,7 @@ async def test_event_listener_checks_if_user_has_existing_activity():
     known_timestamp = datetime(2026, 8, 31, 12, 0, tzinfo=timezone.utc)
 
     event = MessageEvent(
+        guild_id=999,
         user_id = 12345,
         timestamp=known_timestamp,
     )
@@ -127,6 +131,7 @@ async def test_event_listener_ignores_if_user_has_existing_activity():
     known_timestamp = datetime(2026, 8, 31, 12, 0, tzinfo=timezone.utc)
 
     event = MessageEvent(
+        guild_id=999,
         user_id = 12345,
         timestamp=known_timestamp,
     )
@@ -160,6 +165,7 @@ async def test_event_listener_checks_activity_qualification():
     known_timestamp = datetime(2026, 8, 31, 12, 0, tzinfo=timezone.utc)
 
     event = MessageEvent(
+        guild_id=999,
         user_id = 12345,
         timestamp=known_timestamp,
     )
@@ -193,6 +199,7 @@ async def test_event_listener_ignores_non_qualifying_activity():
     known_timestamp = datetime(2026, 8, 31, 12, 0, tzinfo=timezone.utc)
 
     event = MessageEvent(
+        guild_id=999,
         user_id = 12345,
         timestamp=known_timestamp,
     )
@@ -234,6 +241,7 @@ async def test_event_listener_uses_resolved_activity_date():
     )
 
     event = MessageEvent(
+        guild_id=999,
         user_id = 12345,
         timestamp=known_timestamp,
     )
@@ -269,6 +277,7 @@ async def test_event_listener_uses_resolved_activity_date():
 
     mock_repository.record.assert_awaited_once_with(
         ActivityEvent(
+            guild_id=event.guild_id,
             user_id=event.user_id,
             activity_date=date(2026, 9, 16),
         )
@@ -283,6 +292,7 @@ async def test_event_listener_handles_message_from_another_tracked_user():
     known_timestamp = datetime(2026, 8, 31, 12, 0, tzinfo=timezone.utc)
 
     event = MessageEvent(
+        guild_id=999,
         user_id=67890,
         timestamp=known_timestamp,
     )
@@ -308,6 +318,7 @@ async def test_event_listener_handles_message_from_another_tracked_user():
     await listener.handle_message(event)
 
     expected_activity = ActivityEvent(
+        guild_id=event.guild_id,
         user_id=event.user_id,
         activity_date=event.timestamp.date(),
     )

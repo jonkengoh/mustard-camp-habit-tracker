@@ -6,5 +6,6 @@ from datetime import datetime
 class MessageEvent:
     """Represents a message event within the application."""
 
+    guild_id: int
     user_id: int
     timestamp: datetime

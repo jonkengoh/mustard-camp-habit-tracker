@@ -15,6 +15,7 @@ async def test_recorded_activity_can_be_found():
     repository = SQLiteActivityRepository(":memory:")
 
     activity = ActivityEvent(
+        guild_id=999,
         user_id=12345,
         activity_date=date(2026, 9, 16),
     )
@@ -50,6 +51,7 @@ async def test_recording_duplicate_activity_does_not_fail():
     repository = SQLiteActivityRepository(":memory:")
 
     activity = ActivityEvent(
+        guild_id=999,
         user_id=12345,
         activity_date=date(2026, 9, 16),
     )
@@ -74,6 +76,7 @@ async def test_recorded_activity_persists_across_repository_instances(tmp_path):
     first_repository = SQLiteActivityRepository(str(database_path))
 
     activity = ActivityEvent(
+        guild_id=999,
         user_id=12345,
         activity_date=date(2026, 9, 16),
     )
@@ -110,6 +113,7 @@ async def test_activity_dates_can_be_retrieved_for_user():
 
     await repository.record(
         ActivityEvent(
+            guild_id=999,
             user_id=12345,
             activity_date=date(2026, 9, 16),
         )
@@ -117,6 +121,7 @@ async def test_activity_dates_can_be_retrieved_for_user():
 
     await repository.record(
         ActivityEvent(
+            guild_id=999,
             user_id=12345,
             activity_date=date(2026, 9, 17),
         )

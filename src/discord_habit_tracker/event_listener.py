@@ -104,6 +104,7 @@ class EventListener:
 
         # Create an ActivityEvent from the qualifying message
         activity = ActivityEvent(
+            guild_id=event.guild_id,
             user_id=event.user_id,
             activity_date=activity_date,
         )

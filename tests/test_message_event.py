@@ -9,6 +9,7 @@ def test_message_event_stores_message_data():
     timestamp = datetime(2026, 8, 28, 14, 5)
 
     event = MessageEvent(
+        guild_id=999,
         user_id=123456789,
         timestamp=timestamp,
     )

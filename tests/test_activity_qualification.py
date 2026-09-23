@@ -13,6 +13,7 @@ async def test_message_qualifies_as_activity():
     service = ActivityQualificationService()
 
     event = MessageEvent(
+        guild_id=999,
         user_id=12345,
         timestamp=datetime(2026, 8, 31, 12, 0, tzinfo=timezone.utc),
     )

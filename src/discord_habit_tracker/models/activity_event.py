@@ -6,5 +6,6 @@ from datetime import date
 class ActivityEvent:
     """Represents a user's activity for a calendar date."""
 
+    guild_id: int
     user_id: int
     activity_date: date
