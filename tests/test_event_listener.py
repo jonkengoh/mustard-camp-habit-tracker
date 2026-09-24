@@ -119,6 +119,7 @@ async def test_event_listener_checks_if_user_has_existing_activity():
     )
 
     mock_repository.has_activity_for_date.assert_awaited_once_with(
+        event.guild_id,
         event.user_id,
         event.timestamp.date(),
     )
@@ -223,6 +224,7 @@ async def test_event_listener_ignores_non_qualifying_activity():
 
     # Ensure that the qualifies method was called with the event
     mock_qualification_service.qualifies.assert_awaited_once_with(event)
+
     # Ensure that the repository methods were not called since the activity did not qualify
     mock_repository.has_activity_for_date.assert_not_awaited()
     mock_repository.record.assert_not_awaited()
@@ -271,6 +273,7 @@ async def test_event_listener_uses_resolved_activity_date():
     )
 
     mock_repository.has_activity_for_date.assert_awaited_once_with(
+        event.guild_id,
         event.user_id,
         date(2026, 9, 16),
     )

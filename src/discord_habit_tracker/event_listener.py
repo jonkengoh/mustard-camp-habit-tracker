@@ -94,6 +94,7 @@ class EventListener:
 
         # Check if the user already has activity recorded for that date
         has_activity = await self._activity_repository.has_activity_for_date(
+            event.guild_id,
             event.user_id,
             activity_date,
         )

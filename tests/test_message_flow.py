@@ -38,6 +38,7 @@ async def test_first_message_is_recorded():
 
     # Assert
     result = await repository.has_activity_for_date(
+        event.guild_id,
         event.user_id,
         event.timestamp.date(),
     )
