@@ -10,12 +10,25 @@ class SQLiteActivityRepository:
     def __init__(self, database_path: str):
         self._connection = sqlite3.connect(database_path)
 
+        columns = self._connection.execute(
+            "PRAGMA table_info(activities)"
+        ).fetchall()
+
+        if columns:
+            column_names = {column[1] for column in columns}
+
+            if "guild_id" not in column_names:
+                self._connection.execute(
+                    "DROP TABLE activities"
+                )
+
         self._connection.execute(
             """
             CREATE TABLE IF NOT EXISTS activities (
+                guild_id INTEGER NOT NULL,
                 user_id INTEGER NOT NULL,
                 activity_date TEXT NOT NULL,
-                PRIMARY KEY (user_id, activity_date)
+                PRIMARY KEY (guild_id, user_id, activity_date)
             )
             """
         )
@@ -27,10 +40,15 @@ class SQLiteActivityRepository:
 
         self._connection.execute(
             """
-            INSERT OR IGNORE INTO activities (user_id, activity_date)
-            VALUES (?, ?)
+            INSERT OR IGNORE INTO activities (
+                guild_id,
+                user_id,
+                activity_date
+            )
+            VALUES (?, ?, ?)
             """,
             (
+                activity.guild_id,
                 activity.user_id,
                 activity.activity_date.isoformat(),
             ),
@@ -40,6 +58,7 @@ class SQLiteActivityRepository:
 
     async def has_activity_for_date(
         self,
+        guild_id: int,
         user_id: int,
         activity_date: date,
     ) -> bool:
@@ -49,9 +68,10 @@ class SQLiteActivityRepository:
             """
             SELECT 1
             FROM activities
-            WHERE user_id = ? AND activity_date = ?
+            WHERE guild_id = ? AND user_id = ? AND activity_date = ?
             """,
             (
+                guild_id,
                 user_id,
                 activity_date.isoformat(),
             ),
@@ -59,16 +79,16 @@ class SQLiteActivityRepository:
 
         return cursor.fetchone() is not None
 
-    async def get_activity_dates(self, user_id: int) -> set[date]:
+    async def get_activity_dates(self, guild_id, user_id: int) -> set[date]:
         """Return all recorded activity dates for the user."""
 
         cursor = self._connection.execute(
             """
             SELECT activity_date
             FROM activities
-            WHERE user_id = ?
+            WHERE guild_id = ? AND user_id = ?
             """,
-            (user_id,),
+            (guild_id, user_id),
         )
 
         return {
