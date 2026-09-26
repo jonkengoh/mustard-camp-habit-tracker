@@ -10,13 +10,17 @@ class ActivityStatsService:
 
     async def get_current_streak(
         self,
+        guild_id: int,
         user_id: int,
         current_date: date,
     ) -> int:
         """Return the user's current activity streak."""
 
         activity_dates = (
-            await self._activity_repository.get_activity_dates(user_id)
+            await self._activity_repository.get_activity_dates(
+                guild_id,
+                user_id,
+            )
         )
 
         return self._streak_service.calculate_current_streak(
@@ -24,11 +28,18 @@ class ActivityStatsService:
             current_date,
         )
 
-    async def get_longest_streak(self, user_id: int) -> int:
+    async def get_longest_streak(
+        self,
+        guild_id,
+        user_id,
+    ) -> int:
         """Return the user's longest activity streak."""
 
         activity_dates = (
-            await self._activity_repository.get_activity_dates(user_id)
+            await self._activity_repository.get_activity_dates(
+                guild_id,
+                user_id,
+            )
         )
 
         return self._streak_service.calculate_longest_streak(

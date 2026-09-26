@@ -19,6 +19,7 @@ async def test_streak_command_returns_current_and_longest_streak():
     )
 
     result = await command.handle(
+        guild_id=999,
         user_id=12345,
         current_date=date(2026, 9, 20),
     )
@@ -26,10 +27,12 @@ async def test_streak_command_returns_current_and_longest_streak():
     assert result == "Current streak: 5 days\nLongest streak: 12 days"
 
     activity_stats_service.get_current_streak.assert_awaited_once_with(
+        999,
         12345,
         date(2026, 9, 20),
     )
 
     activity_stats_service.get_longest_streak.assert_awaited_once_with(
+        999,
         12345,
     )
