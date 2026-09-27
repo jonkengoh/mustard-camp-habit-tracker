@@ -17,6 +17,7 @@ class DiscordStreakSlashCommand:
         )
 
         response = await self._streak_command.handle(
+            interaction.guild.id,
             interaction.user.id,
             current_date,
         )

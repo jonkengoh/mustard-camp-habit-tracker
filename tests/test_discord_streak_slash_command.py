@@ -15,6 +15,7 @@ async def test_streak_slash_command_responds_with_streaks():
     """Test that the slash command responds with the user's streaks."""
 
     interaction = Mock()
+    interaction.guild.id = 999
     interaction.user.id = 12345
     interaction.response.send_message = AsyncMock()
 
@@ -32,7 +33,6 @@ async def test_streak_slash_command_responds_with_streaks():
         "Asia/Singapore",
     )
 
-
     await handler.handle(
         interaction,
     )
@@ -42,6 +42,7 @@ async def test_streak_slash_command_responds_with_streaks():
     )
 
     streak_command.handle.assert_awaited_once_with(
+        999,
         12345,
         date(2026, 9, 20),
     )

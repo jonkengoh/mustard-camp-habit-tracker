@@ -30,6 +30,7 @@ async def test_activity_stats_service_calculates_current_streak():
     )
 
     result = await service.get_current_streak(
+        999,
         12345,
         date(2026, 9, 18),
     )
@@ -37,6 +38,7 @@ async def test_activity_stats_service_calculates_current_streak():
     assert result == 3
 
     activity_repository.get_activity_dates.assert_awaited_once_with(
+        999,
         12345,
     )
 
@@ -72,11 +74,15 @@ async def test_activity_stats_service_calculates_longest_streak():
         streak_service,
     )
 
-    result = await service.get_longest_streak(12345)
+    result = await service.get_longest_streak(
+        999,
+        12345,
+    )
 
     assert result == 3
 
     activity_repository.get_activity_dates.assert_awaited_once_with(
+        999,
         12345,
     )
 

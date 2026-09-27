@@ -8,6 +8,7 @@ class StreakCommand:
 
     async def handle(
         self,
+        guild_id: int,
         user_id: int,
         current_date: date,
     ) -> str:
@@ -15,6 +16,7 @@ class StreakCommand:
 
         current_streak = (
             await self._activity_stats_service.get_current_streak(
+                guild_id,
                 user_id,
                 current_date,
             )
@@ -22,6 +24,7 @@ class StreakCommand:
 
         longest_streak = (
             await self._activity_stats_service.get_longest_streak(
+                guild_id,
                 user_id,
             )
         )
