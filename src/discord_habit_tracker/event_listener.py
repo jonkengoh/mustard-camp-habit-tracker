@@ -57,14 +57,14 @@ class EventListener:
     def __init__(
         self,
         activity_repository,
-        tracked_user_ids,
+        membership_repository,
         activity_qualification_service,
         activity_date_resolver,
         tracked_user_timezone,
     ):
         """Initialize the Event Listener."""
         self._activity_repository = activity_repository
-        self._tracked_user_ids = tracked_user_ids
+        self._membership_repository = membership_repository
         self._activity_qualification_service = activity_qualification_service
         self._activity_date_resolver = activity_date_resolver
         self._tracked_user_timezone = tracked_user_timezone
@@ -76,8 +76,13 @@ class EventListener:
     async def handle_message(self, event: MessageEvent):
         """Handle an incoming MessageEvent."""
 
-        # Check if the event is from the tracked user
-        if event.user_id not in self._tracked_user_ids:
+        # Check if the user is a member of the guild's tracker
+        is_member = await self._membership_repository.is_member(
+            event.guild_id,
+            event.user_id,
+        )
+
+        if not is_member:
             return
 
         # Check if the event qualifies as an activity
@@ -86,7 +91,7 @@ class EventListener:
         if not qualifies:
             return
 
-        # Resolve the activity date using the tracked user's timezone
+        # Resolve the activity date based on the event timestamp and tracked user timezone
         activity_date = self._activity_date_resolver.resolve(
             event.timestamp,
             self._tracked_user_timezone,
