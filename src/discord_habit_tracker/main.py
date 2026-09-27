@@ -10,6 +10,7 @@ from discord_habit_tracker.services.activity_date_resolver import ActivityDateRe
 from discord_habit_tracker.commands.streak_command import StreakCommand
 from discord_habit_tracker.services.activity_stats_service import ActivityStatsService
 from discord_habit_tracker.services.streak_service import StreakService
+from discord_habit_tracker.repositories.membership_repository import MembershipRepository
 
 
 
@@ -25,6 +26,8 @@ async def main():
     activity_repository = SQLiteActivityRepository(
         str(data_directory / "activity_tracker.db")
     )
+
+    membership_repository = MembershipRepository()
 
     qualification_service = ActivityQualificationService()
 
@@ -44,7 +47,7 @@ async def main():
     # Initialize the event listener and Discord gateway
     listener = EventListener(
         activity_repository,
-        config.tracked_user_ids,
+        membership_repository,
         qualification_service,
         date_resolver,
         config.tracked_user_timezone,

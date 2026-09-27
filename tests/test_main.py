@@ -7,7 +7,6 @@ async def test_main_wires_application_dependencies(monkeypatch):
     # Arrange
     mock_config = Mock()
     mock_config.bot_token = "test-token"
-    mock_config.tracked_user_ids = {12345}
     mock_config.tracked_user_timezone = "America/Chicago"
 
     mock_repository = Mock()
@@ -18,6 +17,7 @@ async def test_main_wires_application_dependencies(monkeypatch):
     mock_stats_service = Mock()
     mock_streak_command = Mock()
     mock_gateway = Mock()
+    mock_membership_repository = Mock()
 
     mock_gateway.start = AsyncMock()
 
@@ -30,6 +30,7 @@ async def test_main_wires_application_dependencies(monkeypatch):
     activity_stats_service_mock = Mock(return_value=mock_stats_service)
     streak_command_mock = Mock(return_value=mock_streak_command)
     gateway_mock = Mock(return_value=mock_gateway)
+    membership_repository_mock = Mock(return_value=mock_membership_repository)
 
     monkeypatch.setattr(main, "Config", config_mock)
     monkeypatch.setattr(
@@ -37,6 +38,13 @@ async def test_main_wires_application_dependencies(monkeypatch):
         "SQLiteActivityRepository",
         sqlite_activity_repository_mock,
     )
+
+    monkeypatch.setattr(
+        main,
+        "MembershipRepository",
+        membership_repository_mock,
+    )
+
     monkeypatch.setattr(
         main,
         "ActivityQualificationService",
@@ -67,7 +75,7 @@ async def test_main_wires_application_dependencies(monkeypatch):
 
     listener_mock.assert_called_once_with(
         mock_repository,
-        {12345},
+        mock_membership_repository,
         mock_qualification_service,
         mock_date_resolver,
         "America/Chicago",
@@ -98,7 +106,6 @@ async def test_main_closes_repository_when_gateway_stops(monkeypatch):
     # Arrange
     mock_config = Mock()
     mock_config.bot_token = "test-token"
-    mock_config.tracked_user_ids = {12345}
     mock_config.tracked_user_timezone = "America/Chicago"
 
     mock_repository = Mock()
