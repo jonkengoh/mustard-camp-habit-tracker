@@ -30,7 +30,7 @@ async def test_main_wires_application_dependencies(monkeypatch):
     activity_stats_service_mock = Mock(return_value=mock_stats_service)
     streak_command_mock = Mock(return_value=mock_streak_command)
     gateway_mock = Mock(return_value=mock_gateway)
-    membership_repository_mock = Mock(return_value=mock_membership_repository)
+    sqlite_membership_repository_mock = Mock(return_value=mock_membership_repository)
 
     monkeypatch.setattr(main, "Config", config_mock)
     monkeypatch.setattr(
@@ -41,8 +41,8 @@ async def test_main_wires_application_dependencies(monkeypatch):
 
     monkeypatch.setattr(
         main,
-        "MembershipRepository",
-        membership_repository_mock,
+        "SQLiteMembershipRepository",
+        sqlite_membership_repository_mock,
     )
 
     monkeypatch.setattr(
@@ -68,6 +68,10 @@ async def test_main_wires_application_dependencies(monkeypatch):
     config_mock.assert_called_once_with()
 
     sqlite_activity_repository_mock.assert_called_once_with(
+        "data/activity_tracker.db"
+    )
+
+    sqlite_membership_repository_mock.assert_called_once_with(
         "data/activity_tracker.db"
     )
     qualification_service_mock.assert_called_once_with()
@@ -109,6 +113,7 @@ async def test_main_closes_repository_when_gateway_stops(monkeypatch):
     mock_config.tracked_user_timezone = "America/Chicago"
 
     mock_repository = Mock()
+    mock_membership_repository = Mock()
     mock_qualification_service = Mock()
     mock_date_resolver = Mock()
     mock_listener = Mock()
@@ -118,6 +123,7 @@ async def test_main_closes_repository_when_gateway_stops(monkeypatch):
 
     config_mock = Mock(return_value=mock_config)
     sqlite_activity_repository_mock = Mock(return_value=mock_repository)
+    sqlite_membership_repository_mock = Mock(return_value=mock_membership_repository)
     qualification_service_mock = Mock(return_value=mock_qualification_service)
     date_resolver_mock = Mock(return_value=mock_date_resolver)
     listener_mock = Mock(return_value=mock_listener)
@@ -128,6 +134,11 @@ async def test_main_closes_repository_when_gateway_stops(monkeypatch):
         main,
         "SQLiteActivityRepository",
         sqlite_activity_repository_mock,
+    )
+    monkeypatch.setattr(
+        main,
+        "SQLiteMembershipRepository",
+        sqlite_membership_repository_mock,
     )
     monkeypatch.setattr(
         main,
@@ -143,3 +154,4 @@ async def test_main_closes_repository_when_gateway_stops(monkeypatch):
 
     # Assert
     mock_repository.close.assert_called_once()
+    mock_membership_repository.close.assert_called_once()

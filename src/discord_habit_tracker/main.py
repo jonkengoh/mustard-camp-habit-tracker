@@ -1,16 +1,24 @@
+#!/usr/bin/env python3
 import asyncio
 
+# Standard Library
 from pathlib import Path
 from discord_habit_tracker.config import Config
 from discord_habit_tracker.discord_gateway import DiscordGateway
 from discord_habit_tracker.event_listener import EventListener
+
+# Repositories
 from discord_habit_tracker.repositories.sqlite_activity_repository import SQLiteActivityRepository
+from discord_habit_tracker.repositories.sqlite_membership_repository import SQLiteMembershipRepository
+
+# Services
 from discord_habit_tracker.services.activity_qualification_service import ActivityQualificationService
 from discord_habit_tracker.services.activity_date_resolver import ActivityDateResolver
-from discord_habit_tracker.commands.streak_command import StreakCommand
 from discord_habit_tracker.services.activity_stats_service import ActivityStatsService
 from discord_habit_tracker.services.streak_service import StreakService
-from discord_habit_tracker.repositories.membership_repository import MembershipRepository
+
+# Commands
+from discord_habit_tracker.commands.streak_command import StreakCommand
 
 
 
@@ -23,11 +31,10 @@ async def main():
     data_directory = Path("data")
     data_directory.mkdir(exist_ok=True)
 
-    activity_repository = SQLiteActivityRepository(
-        str(data_directory / "activity_tracker.db")
-    )
+    database_path = str(data_directory / "activity_tracker.db")
 
-    membership_repository = MembershipRepository()
+    activity_repository = SQLiteActivityRepository(database_path)
+    membership_repository = SQLiteMembershipRepository(database_path)
 
     qualification_service = ActivityQualificationService()
 
@@ -64,6 +71,7 @@ async def main():
         await gateway.start()
     finally:
         activity_repository.close()
+        membership_repository.close()
 
 
 if __name__ == "__main__":
