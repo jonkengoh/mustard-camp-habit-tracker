@@ -18,8 +18,9 @@ async def test_first_message_is_recorded():
     membership_repository = MembershipRepository()
 
     await membership_repository.add_member(
-        999,
-        12345,
+        guild_id=999,
+        user_id=12345,
+        timezone="Asia/Singapore",
     )
 
     listener = EventListener(
@@ -27,7 +28,6 @@ async def test_first_message_is_recorded():
         membership_repository=membership_repository,  # No membership check needed for this test
         activity_qualification_service=qualification_service,
         activity_date_resolver=date_resolver,
-        tracked_user_timezone="Asia/Singapore",
     )
 
     event = MessageEvent(

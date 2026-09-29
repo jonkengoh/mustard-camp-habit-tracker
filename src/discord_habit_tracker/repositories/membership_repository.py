@@ -1,26 +1,34 @@
+from discord_habit_tracker.models.tracker_member import TrackerMember
+
+
 class MembershipRepository:
     """Stores tracker membership."""
 
     def __init__(self):
-        self._members = set()
+        self._members = {}
 
     async def add_member(
         self,
         guild_id: int,
         user_id: int,
+        timezone: str,
     ):
         """Add a user to a guild's tracker."""
 
-        self._members.add((guild_id, user_id))
+        self._members[(guild_id, user_id)] = TrackerMember(
+            guild_id=guild_id,
+            user_id=user_id,
+            timezone=timezone,
+        )
 
-    async def is_member(
+    async def get_member(
         self,
         guild_id: int,
         user_id: int,
-    ) -> bool:
-        """Return whether a user is a member of a guild's tracker."""
+    ) -> TrackerMember | None:
+        """Return a guild tracker member, if one exists."""
 
-        return (guild_id, user_id) in self._members
+        return self._members.get((guild_id, user_id))
 
     async def remove_member(
         self,
@@ -29,4 +37,4 @@ class MembershipRepository:
     ):
         """Remove a user from a guild's tracker."""
 
-        self._members.discard((guild_id, user_id))
+        self._members.pop((guild_id, user_id), None)

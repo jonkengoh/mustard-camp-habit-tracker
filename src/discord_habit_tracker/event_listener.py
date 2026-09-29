@@ -60,14 +60,12 @@ class EventListener:
         membership_repository,
         activity_qualification_service,
         activity_date_resolver,
-        tracked_user_timezone,
     ):
         """Initialize the Event Listener."""
         self._activity_repository = activity_repository
         self._membership_repository = membership_repository
         self._activity_qualification_service = activity_qualification_service
         self._activity_date_resolver = activity_date_resolver
-        self._tracked_user_timezone = tracked_user_timezone
 
     # -------------------------------------------------------------------------
     # Event Handlers
@@ -77,12 +75,12 @@ class EventListener:
         """Handle an incoming MessageEvent."""
 
         # Check if the user is a member of the guild's tracker
-        is_member = await self._membership_repository.is_member(
+        member = await self._membership_repository.get_member(
             event.guild_id,
             event.user_id,
         )
 
-        if not is_member:
+        if member is None:
             return
 
         # Check if the event qualifies as an activity
@@ -94,7 +92,7 @@ class EventListener:
         # Resolve the activity date based on the event timestamp and tracked user timezone
         activity_date = self._activity_date_resolver.resolve(
             event.timestamp,
-            self._tracked_user_timezone,
+            member.timezone,
         )
 
         # Check if the user already has activity recorded for that date

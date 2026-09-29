@@ -5,13 +5,11 @@ from unittest.mock import AsyncMock, Mock
 from discord_habit_tracker.event_listener import EventListener
 from discord_habit_tracker.models.message_event import MessageEvent
 from discord_habit_tracker.models.activity_event import ActivityEvent
+from discord_habit_tracker.models.tracker_member import TrackerMember
 
 
 async def test_event_listener_handles_message():
     """Test that the EventListener can handle a MessageEvent."""
-
-    membership_repository = Mock()
-    membership_repository.is_member = AsyncMock(return_value=True)
 
     known_timestamp = datetime(2026, 8, 31, 12, 0, tzinfo=timezone.utc)
 
@@ -19,6 +17,15 @@ async def test_event_listener_handles_message():
         guild_id=999,
         user_id = 12345,
         timestamp=known_timestamp,
+    )
+
+    membership_repository = Mock()
+    membership_repository.get_member = AsyncMock(
+        return_value=TrackerMember(
+            guild_id=event.guild_id,
+            user_id=event.user_id,
+            timezone="Asia/Singapore",
+        )
     )
 
     mock_repository = AsyncMock()
@@ -36,12 +43,11 @@ async def test_event_listener_handles_message():
         membership_repository,
         mock_qualification_service,
         mock_date_resolver,
-        "Asia/Singapore",
     )
 
     await listener.handle_message(event)
 
-    membership_repository.is_member.assert_awaited_once_with(
+    membership_repository.get_member.assert_awaited_once_with(
         event.guild_id,
         event.user_id,
     )
@@ -71,7 +77,7 @@ async def test_event_listener_ignores_non_member():
     mock_date_resolver = Mock()
 
     membership_repository = Mock()
-    membership_repository.is_member = AsyncMock(return_value=False)
+    membership_repository.get_member = AsyncMock(return_value=None)  # Simulate that the user is not a member
 
     mock_qualification_service = AsyncMock()
     mock_qualification_service.qualifies.return_value = True
@@ -81,12 +87,11 @@ async def test_event_listener_ignores_non_member():
         membership_repository,
         mock_qualification_service,
         mock_date_resolver,
-        "Asia/Singapore",
     )
 
     await listener.handle_message(event)
 
-    membership_repository.is_member.assert_awaited_once_with(
+    membership_repository.get_member.assert_awaited_once_with(
         event.guild_id,
         event.user_id,
     )
@@ -111,7 +116,13 @@ async def test_event_listener_checks_if_member_has_existing_activity():
     mock_date_resolver.resolve.return_value = event.timestamp.date()
 
     membership_repository = Mock()
-    membership_repository.is_member = AsyncMock(return_value=True)
+    membership_repository.get_member = AsyncMock(
+        return_value=TrackerMember(
+            guild_id=event.guild_id,
+            user_id=event.user_id,
+            timezone="Asia/Singapore",
+        )
+    )
 
     mock_qualification_service = AsyncMock()
     mock_qualification_service.qualifies.return_value = True
@@ -121,7 +132,6 @@ async def test_event_listener_checks_if_member_has_existing_activity():
         membership_repository,
         mock_qualification_service,
         mock_date_resolver,
-        "Asia/Singapore",
     )
 
     await listener.handle_message(event)
@@ -156,7 +166,13 @@ async def test_event_listener_ignores_if_member_has_existing_activity():
     mock_date_resolver = Mock()
 
     membership_repository = Mock()
-    membership_repository.is_member = AsyncMock(return_value=True) # Simulate that the user is a member of the guild's tracker
+    membership_repository.get_member = AsyncMock(
+        return_value=TrackerMember(
+            guild_id=event.guild_id,
+            user_id=event.user_id,
+            timezone="Asia/Singapore",
+        )
+    )
 
     mock_qualification_service = AsyncMock()
     mock_qualification_service.qualifies.return_value = True
@@ -166,7 +182,6 @@ async def test_event_listener_ignores_if_member_has_existing_activity():
         membership_repository,
         mock_qualification_service,
         mock_date_resolver,
-        "Asia/Singapore",
     )
 
     await listener.handle_message(event)
@@ -191,7 +206,13 @@ async def test_event_listener_checks_activity_qualification():
     mock_qualification_service.qualifies.return_value = True
 
     membership_repository = Mock()
-    membership_repository.is_member = AsyncMock(return_value=True)
+    membership_repository.get_member = AsyncMock(
+        return_value=TrackerMember(
+            guild_id=event.guild_id,
+            user_id=event.user_id,
+            timezone="Asia/Singapore",
+        )
+    )
 
     mock_date_resolver = Mock()
 
@@ -200,7 +221,6 @@ async def test_event_listener_checks_activity_qualification():
         membership_repository,
         mock_qualification_service,
         mock_date_resolver,
-        "Asia/Singapore",
     )
 
     await listener.handle_message(event)
@@ -221,7 +241,13 @@ async def test_event_listener_ignores_non_qualifying_activity():
 
     mock_repository = AsyncMock()
     membership_repository = Mock()
-    membership_repository.is_member = AsyncMock(return_value=True)
+    membership_repository.get_member = AsyncMock(
+        return_value=TrackerMember(
+            guild_id=event.guild_id,
+            user_id=event.user_id,
+            timezone="Asia/Singapore",
+        )
+    )
 
     mock_qualification_service = AsyncMock()
     mock_qualification_service.qualifies.return_value = False
@@ -233,7 +259,6 @@ async def test_event_listener_ignores_non_qualifying_activity():
         membership_repository,
         mock_qualification_service,
         mock_date_resolver,
-        "Asia/Singapore",
     )
 
     await listener.handle_message(event)
@@ -268,7 +293,13 @@ async def test_event_listener_uses_resolved_activity_date():
     mock_repository.has_activity_for_date.return_value = False
 
     membership_repository = Mock()
-    membership_repository.is_member = AsyncMock(return_value=True)
+    membership_repository.get_member = AsyncMock(
+        return_value=TrackerMember(
+            guild_id=event.guild_id,
+            user_id=event.user_id,
+            timezone="America/Chicago",
+        )
+    )
 
     mock_qualification_service = AsyncMock()
     mock_qualification_service.qualifies.return_value = True
@@ -281,7 +312,6 @@ async def test_event_listener_uses_resolved_activity_date():
         membership_repository,
         activity_qualification_service=mock_qualification_service,
         activity_date_resolver=mock_date_resolver,
-        tracked_user_timezone="America/Chicago",
     )
 
     await listener.handle_message(event)
@@ -321,7 +351,13 @@ async def test_event_listener_handles_message_from_another_member():
     mock_repository.has_activity_for_date.return_value = False
 
     membership_repository = Mock()
-    membership_repository.is_member = AsyncMock(return_value=True)
+    membership_repository.get_member = AsyncMock(
+        return_value=TrackerMember(
+            guild_id=event.guild_id,
+            user_id=event.user_id,
+            timezone="Asia/Singapore",
+        )
+    )
 
     mock_date_resolver = Mock()
     mock_date_resolver.resolve.return_value = event.timestamp.date()
@@ -335,7 +371,6 @@ async def test_event_listener_handles_message_from_another_member():
         membership_repository,
         mock_qualification_service,
         mock_date_resolver,
-        "Asia/Singapore",
     )
 
     await listener.handle_message(event)

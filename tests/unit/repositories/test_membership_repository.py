@@ -1,10 +1,7 @@
-import pytest
+from discord_habit_tracker.repositories.membership_repository import MembershipRepository
+from discord_habit_tracker.models.tracker_member import TrackerMember
 
-from discord_habit_tracker.repositories.membership_repository import (
-    MembershipRepository,
-)
 
-@pytest.mark.asyncio
 async def test_membership_repository_adds_member():
     """Test that a user can join a guild's tracker."""
 
@@ -13,17 +10,21 @@ async def test_membership_repository_adds_member():
     await repository.add_member(
         guild_id=999,
         user_id=12345,
+        timezone="Asia/Singapore",
     )
 
-    result = await repository.is_member(
+    result = await repository.get_member(
         guild_id=999,
         user_id=12345,
     )
 
-    assert result is True
+    assert result == TrackerMember(
+        guild_id=999,
+        user_id=12345,
+        timezone="Asia/Singapore",
+    )
 
 
-@pytest.mark.asyncio
 async def test_membership_repository_isolates_guilds():
     """Test that membership is scoped to a guild."""
 
@@ -32,20 +33,24 @@ async def test_membership_repository_isolates_guilds():
     await repository.add_member(
         guild_id=999,
         user_id=12345,
+        timezone="Asia/Singapore",
     )
 
-    assert await repository.is_member(
+    assert await repository.get_member(
         guild_id=999,
         user_id=12345,
-    ) is True
+    ) == TrackerMember(
+        guild_id=999,
+        user_id=12345,
+        timezone="Asia/Singapore",
+    )
 
-    assert await repository.is_member(
+    assert await repository.get_member(
         guild_id=888,
         user_id=12345,
-    ) is False
+    ) is None
 
 
-@pytest.mark.asyncio
 async def test_membership_repository_isolates_users():
     """Test that membership is scoped to a user."""
 
@@ -54,20 +59,24 @@ async def test_membership_repository_isolates_users():
     await repository.add_member(
         guild_id=999,
         user_id=12345,
+        timezone="Asia/Singapore",
     )
 
-    assert await repository.is_member(
+    assert await repository.get_member(
         guild_id=999,
         user_id=12345,
-    ) is True
+    ) == TrackerMember(
+        guild_id=999,
+        user_id=12345,
+        timezone="Asia/Singapore",
+    )
 
-    assert await repository.is_member(
+    assert await repository.get_member(
         guild_id=999,
         user_id=67890,
-    ) is False
+    ) is None
 
 
-@pytest.mark.asyncio
 async def test_membership_repository_removes_member():
     """Test that a user can leave a guild's tracker."""
 
@@ -76,6 +85,7 @@ async def test_membership_repository_removes_member():
     await repository.add_member(
         guild_id=999,
         user_id=12345,
+        timezone="Asia/Singapore",
     )
 
     await repository.remove_member(
@@ -83,9 +93,22 @@ async def test_membership_repository_removes_member():
         user_id=12345,
     )
 
-    result = await repository.is_member(
+    result = await repository.get_member(
         guild_id=999,
         user_id=12345,
     )
 
-    assert result is False
+    assert result is None
+
+
+async def test_membership_repository_returns_none_for_missing_member():
+    """Test that an unregistered member cannot be retrieved."""
+
+    repository = MembershipRepository()
+
+    result = await repository.get_member(
+        guild_id=999,
+        user_id=12345,
+    )
+
+    assert result is None
