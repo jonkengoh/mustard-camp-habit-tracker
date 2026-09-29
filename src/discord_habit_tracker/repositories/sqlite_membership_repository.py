@@ -1,5 +1,7 @@
 import sqlite3
 
+from discord_habit_tracker.models.tracker_member import TrackerMember
+
 
 class SQLiteMembershipRepository:
     """Stores tracker membership using SQLite."""
@@ -12,6 +14,7 @@ class SQLiteMembershipRepository:
             CREATE TABLE IF NOT EXISTS members (
                 guild_id INTEGER NOT NULL,
                 user_id INTEGER NOT NULL,
+                timezone TEXT NOT NULL,
                 PRIMARY KEY (guild_id, user_id)
             )
             """
@@ -19,35 +22,45 @@ class SQLiteMembershipRepository:
 
         self._connection.commit()
 
-    async def add_member(self, guild_id: int, user_id: int):
+    async def add_member(self, guild_id: int, user_id: int, timezone: str):
         """Add a user as a tracker member."""
 
         self._connection.execute(
             """
             INSERT OR IGNORE INTO members (
                 guild_id,
-                user_id
+                user_id,
+                timezone
             )
-            VALUES (?, ?)
+            VALUES (?, ?, ?)
             """,
-            (guild_id, user_id),
+            (guild_id, user_id, timezone),
         )
 
         self._connection.commit()
 
-    async def is_member(self, guild_id: int, user_id: int) -> bool:
-        """Return whether a user is a tracker member."""
+    async def get_member(self, guild_id: int, user_id: int) -> TrackerMember | None:
+        """Return a tracker member if they exist."""
 
         cursor = self._connection.execute(
             """
-            SELECT 1
+            SELECT guild_id, user_id, timezone
             FROM members
             WHERE guild_id = ? AND user_id = ?
             """,
             (guild_id, user_id),
         )
 
-        return cursor.fetchone() is not None
+        row = cursor.fetchone()
+
+        if row is None:
+            return None
+
+        return TrackerMember(
+            guild_id=row[0],
+            user_id=row[1],
+            timezone=row[2],
+        )
 
 
     async def remove_member(self, guild_id: int, user_id: int):

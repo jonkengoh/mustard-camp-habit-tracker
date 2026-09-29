@@ -1,6 +1,5 @@
-from discord_habit_tracker.repositories.sqlite_membership_repository import (
-    SQLiteMembershipRepository,
-)
+from discord_habit_tracker.repositories.sqlite_membership_repository import SQLiteMembershipRepository
+from discord_habit_tracker.models.tracker_member import TrackerMember
 
 
 async def test_added_member_can_be_found():
@@ -8,11 +7,19 @@ async def test_added_member_can_be_found():
 
     repository = SQLiteMembershipRepository(":memory:")
 
-    await repository.add_member(999, 12345)
+    await repository.add_member(
+        999,
+        12345,
+        "Asia/Singapore",
+    )
 
-    result = await repository.is_member(999, 12345)
+    result = await repository.get_member(999, 12345)
 
-    assert result is True
+    assert result == TrackerMember(
+        guild_id=999,
+        user_id=12345,
+        timezone="Asia/Singapore",
+    )
 
 
 async def test_missing_member_cannot_be_found():
@@ -20,9 +27,9 @@ async def test_missing_member_cannot_be_found():
 
     repository = SQLiteMembershipRepository(":memory:")
 
-    result = await repository.is_member(999, 12345)
+    result = await repository.get_member(999, 12345)
 
-    assert result is False
+    assert result is None
 
 
 async def test_different_guilds_are_tracked_separately():
@@ -30,10 +37,14 @@ async def test_different_guilds_are_tracked_separately():
 
     repository = SQLiteMembershipRepository(":memory:")
 
-    await repository.add_member(999, 12345)
+    await repository.add_member(
+        999,
+        12345,
+        "Asia/Singapore",
+    )
 
-    assert await repository.is_member(999, 12345)
-    assert not await repository.is_member(1000, 12345)
+    assert await repository.get_member(999, 12345) is not None
+    assert await repository.get_member(1000, 12345) is None
 
 
 async def test_removed_member_cannot_be_found():
@@ -41,12 +52,16 @@ async def test_removed_member_cannot_be_found():
 
     repository = SQLiteMembershipRepository(":memory:")
 
-    await repository.add_member(999, 12345)
+    await repository.add_member(
+        999,
+        12345,
+        "Asia/Singapore",
+    )
     await repository.remove_member(999, 12345)
 
-    result = await repository.is_member(999, 12345)
+    result = await repository.get_member(999, 12345)
 
-    assert result is False
+    assert result is None
 
 
 async def test_membership_persists_across_repository_instances(tmp_path):
@@ -56,13 +71,22 @@ async def test_membership_persists_across_repository_instances(tmp_path):
 
     first_repository = SQLiteMembershipRepository(str(database_path))
 
-    await first_repository.add_member(999, 12345)
+    await first_repository.add_member(
+        999,
+        12345,
+        "Asia/Singapore",
+    )
 
     second_repository = SQLiteMembershipRepository(str(database_path))
 
-    result = await second_repository.is_member(999, 12345)
+    result = await second_repository.get_member(999, 12345)
 
-    assert result is True
+    assert result == TrackerMember(
+        guild_id=999,
+        user_id=12345,
+        timezone="Asia/Singapore",
+
+    )
 
 
 async def test_adding_duplicate_member_does_not_fail():
@@ -70,12 +94,25 @@ async def test_adding_duplicate_member_does_not_fail():
 
     repository = SQLiteMembershipRepository(":memory:")
 
-    await repository.add_member(999, 12345)
-    await repository.add_member(999, 12345)
+    await repository.add_member(
+        999,
+        12345,
+        "Asia/Singapore",
+    )
 
-    result = await repository.is_member(999, 12345)
+    await repository.add_member(
+        999,
+        12345,
+        "Asia/Singapore",
+    )
 
-    assert result is True
+    result = await repository.get_member(999, 12345)
+
+    assert result == TrackerMember(
+        guild_id=999,
+        user_id=12345,
+        timezone="Asia/Singapore",
+    )
 
 
 def test_repository_can_be_closed(tmp_path):
