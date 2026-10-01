@@ -1,4 +1,6 @@
 from dataclasses import dataclass
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 
 @dataclass(frozen=True)
@@ -139,3 +141,26 @@ TIMEZONE_OPTIONS = (
         flag="🇿🇦",
     ),
 )
+
+
+def format_timezone_label(
+    option: TimezoneOption,
+    reference_datetime: datetime,
+) -> str:
+    """Format a timezone option for display."""
+    local_datetime = reference_datetime.astimezone(
+        ZoneInfo(option.timezone)
+    )
+
+    offset = local_datetime.utcoffset()
+    total_minutes = int(offset.total_seconds() // 60)
+
+    sign = "+" if total_minutes >= 0 else "-"
+    total_minutes = abs(total_minutes)
+
+    hours, minutes = divmod(total_minutes, 60)
+
+    return (
+        f"{option.flag} {option.name} "
+        f"(UTC{sign}{hours:02d}:{minutes:02d})"
+    )
