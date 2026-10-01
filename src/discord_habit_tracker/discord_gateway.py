@@ -49,14 +49,10 @@ class DiscordGateway:
         intents.messages = True
         intents.message_content = True
 
-        print("Messages intent:", intents.messages)
-        print("Message content intent:", intents.message_content)
-
         self._client = discord.Client(intents=intents)
         self._tree = discord.app_commands.CommandTree(self._client)
 
         self._client.event(self.on_message)
-        print("Registered on_message handler")
         self._client.event(self.on_ready)
         self._client.setup_hook = self._setup_hook
 
@@ -80,20 +76,16 @@ class DiscordGateway:
     async def start(self):
         """Start the Discord client."""
 
-        print("Starting Discord client...")
         await self._client.start(self._bot_token)
-        print("Discord client stopped.")
 
     async def on_message(self, message):
         """Translate a Discord message into an application event."""
-
 
         print(
             f"Received message from {message.author.id}: {message.content}"
         )
 
         event = MessageEvent(
-            guild_id=message.guild.id,
             user_id=message.author.id,
             timestamp=message.created_at,
         )
@@ -108,6 +100,4 @@ class DiscordGateway:
     async def _setup_hook(self):
         """Sync application commands with Discord."""
 
-        print("Starting command sync...")
         await self._tree.sync()
-        print("Command sync complete.")
