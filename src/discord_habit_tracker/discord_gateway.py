@@ -86,6 +86,7 @@ class DiscordGateway:
         )
 
         event = MessageEvent(
+            guild_id=message.guild.id,
             user_id=message.author.id,
             timestamp=message.created_at,
         )
