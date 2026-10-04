@@ -59,6 +59,8 @@ class TimezoneSelect(discord.ui.Select):
             )
             return
 
+        self.disabled = True
+
         selected_option = next(
             option
             for option in TIMEZONE_OPTIONS

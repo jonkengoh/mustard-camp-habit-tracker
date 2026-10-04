@@ -105,3 +105,22 @@ async def test_timezone_select_rejects_invalid_timezone():
     interaction.response.send_message.assert_awaited_once_with(
         "The selected timezone is invalid."
     )
+
+async def test_timezone_select_disables_after_successful_join():
+    membership_service = Mock()
+    membership_service.join = AsyncMock()
+
+    select = TimezoneSelect(membership_service)
+
+    interaction = Mock()
+    interaction.guild.id = 999
+    interaction.user.id = 12345
+    interaction.response.send_message = AsyncMock()
+
+    select._values = ["Asia/Singapore"]
+
+    assert select.disabled is False
+
+    await select.callback(interaction)
+
+    assert select.disabled is True
