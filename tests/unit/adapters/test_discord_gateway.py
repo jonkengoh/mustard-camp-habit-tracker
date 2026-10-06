@@ -234,3 +234,66 @@ def test_streak_command_contains_join_subcommand():
     )
 
     assert join_command is not None
+
+
+def test_streak_command_contains_leave_subcommand():
+    membership_service = Mock()
+
+    gateway = DiscordGateway(
+        bot_token="test-token",
+        message_handler=Mock(),
+        streak_command=Mock(),
+        timezone_name="Asia/Singapore",
+        membership_service=membership_service,
+    )
+
+    streak_command = next(
+        command
+        for command in gateway._tree.get_commands()
+        if command.name == "streak"
+    )
+
+    assert isinstance(streak_command, discord.app_commands.Group)
+
+    leave_command = next(
+        command
+        for command in streak_command.commands
+        if command.name == "leave"
+    )
+
+    assert leave_command is not None
+
+
+async def test_discord_gateway_leave_command_delegates_to_handler():
+    """Test that the leave command delegates to the Discord adapter."""
+
+    gateway = DiscordGateway(
+        bot_token="test-token",
+        message_handler=Mock(),
+        streak_command=Mock(),
+        timezone_name="Asia/Singapore",
+        membership_service=Mock(),
+    )
+
+    gateway._streak_leave_slash_command = Mock()
+    gateway._streak_leave_slash_command.handle = AsyncMock()
+
+    interaction = Mock()
+
+    streak_group = next(
+        command
+        for command in gateway._tree.get_commands()
+        if command.name == "streak"
+    )
+
+    leave_command = next(
+        command
+        for command in streak_group.commands
+        if command.name == "leave"
+    )
+
+    await leave_command.callback(interaction)
+
+    gateway._streak_leave_slash_command.handle.assert_awaited_once_with(
+        interaction,
+    )

@@ -25,6 +25,9 @@ from discord_habit_tracker.commands.discord_streak_slash_command import (
 from discord_habit_tracker.commands.discord_streak_join_slash_command import (
     DiscordStreakJoinSlashCommand,
 )
+from discord_habit_tracker.commands.discord_streak_leave_slash_command import (
+    DiscordStreakLeaveSlashCommand,
+)
 from discord_habit_tracker.models.message_event import MessageEvent
 from discord_habit_tracker.services.current_date_resolver import CurrentDateResolver
 
@@ -82,6 +85,10 @@ class DiscordGateway:
         async def join(interaction: discord.Interaction):
             await self._streak_join_slash_command.handle(interaction)
 
+        async def leave(interaction: discord.Interaction):
+            await self._streak_leave_slash_command.handle(interaction)
+
+
         streak_group.add_command(
             discord.app_commands.Command(
                 name="stats",
@@ -95,6 +102,14 @@ class DiscordGateway:
                 name="join",
                 description="Join the activity tracker.",
                 callback=join,
+            )
+        )
+
+        streak_group.add_command(
+            discord.app_commands.Command(
+                name="leave",
+                description="Leave the activity tracker.",
+                callback=leave,
             )
         )
 
