@@ -14,7 +14,8 @@ def test_gateway_initializes():
         "test-token",
         message_handler=Mock(),
         streak_command=Mock(),
-        timezone_name="Asia/Singapore"
+        timezone_name="Asia/Singapore",
+        membership_service=Mock(),
     )
 
     assert gateway is not None
@@ -28,6 +29,7 @@ def test_gateway_creates_discord_client():
         message_handler=Mock(),
         streak_command=Mock(),
         timezone_name="Asia/Singapore",
+        membership_service=Mock(),
     )
 
     assert isinstance(gateway._client, discord.Client)
@@ -41,6 +43,7 @@ def test_gateway_enables_message_content_intent():
         message_handler=Mock(),
         streak_command=Mock(),
         timezone_name="Asia/Singapore",
+        membership_service=Mock(),
     )
 
     assert gateway._client.intents.message_content is True
@@ -54,6 +57,7 @@ async def test_gateway_starts_client():
         message_handler=Mock(),
         streak_command=Mock(),
         timezone_name="Asia/Singapore",
+        membership_service=Mock(),
     )
 
     gateway._client.start = AsyncMock()
@@ -86,6 +90,7 @@ def test_on_message_registers_client_event(monkeypatch):
         message_handler=Mock(),
         streak_command=Mock(),
         timezone_name="Asia/Singapore",
+        membership_service=Mock(),
     )
 
     mock_client.event.assert_any_call(gateway.on_message)
@@ -119,6 +124,7 @@ async def test_translate_forward_discord_message():
         mock_handler,
         streak_command=Mock(),
         timezone_name="Asia/Singapore",
+        membership_service=Mock(),
     )
 
     await gateway.on_message(mock_message)
@@ -135,6 +141,7 @@ def test_discord_gateway_registers_streak_command():
         message_handler=Mock(),
         streak_command=streak_command,
         timezone_name="Asia/Singapore",
+        membership_service=Mock(),
     )
 
     registered_commands = gateway._tree.get_commands()
@@ -155,6 +162,7 @@ async def test_discord_gateway_streak_command_delegates_to_handler():
         message_handler=Mock(),
         streak_command=streak_command,
         timezone_name="Asia/Singapore",
+        membership_service=Mock(),
     )
 
     gateway._streak_slash_command = Mock()
@@ -162,10 +170,19 @@ async def test_discord_gateway_streak_command_delegates_to_handler():
 
     interaction = Mock()
 
-    registered_commands = gateway._tree.get_commands()
-    command = registered_commands[0]
+    streak_group = next(
+        command
+        for command in gateway._tree.get_commands()
+        if command.name == "streak"
+    )
 
-    await command.callback(interaction)
+    stats_command = next(
+        command
+        for command in streak_group.commands
+        if command.name == "stats"
+    )
+
+    await stats_command.callback(interaction)
 
     gateway._streak_slash_command.handle.assert_awaited_once_with(
         interaction,
@@ -177,15 +194,11 @@ async def test_gateway_syncs_application_commands():
     """Test that the gateway syncs application commands with Discord."""
 
     gateway = DiscordGateway(
-
         bot_token="test-token",
-
         message_handler=Mock(),
-
         streak_command=Mock(),
-
         timezone_name="Asia/Singapore",
-
+        membership_service=Mock(),
     )
 
     gateway._tree.sync = AsyncMock()
@@ -193,3 +206,31 @@ async def test_gateway_syncs_application_commands():
     await gateway._client.setup_hook()
 
     gateway._tree.sync.assert_awaited_once()
+
+
+def test_streak_command_contains_join_subcommand():
+    membership_service = Mock()
+
+    gateway = DiscordGateway(
+        bot_token="test-token",
+        message_handler=Mock(),
+        streak_command=Mock(),
+        timezone_name="Asia/Singapore",
+        membership_service=membership_service,
+    )
+
+    streak_command = next(
+        command
+        for command in gateway._tree.get_commands()
+        if command.name == "streak"
+    )
+
+    assert isinstance(streak_command, discord.app_commands.Group)
+
+    join_command = next(
+        command
+        for command in streak_command.commands
+        if command.name == "join"
+    )
+
+    assert join_command is not None

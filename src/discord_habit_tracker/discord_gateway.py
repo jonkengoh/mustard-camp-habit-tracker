@@ -22,6 +22,9 @@ import discord
 from discord_habit_tracker.commands.discord_streak_slash_command import (
     DiscordStreakSlashCommand,
 )
+from discord_habit_tracker.commands.discord_streak_join_slash_command import (
+    DiscordStreakJoinSlashCommand,
+)
 from discord_habit_tracker.models.message_event import MessageEvent
 from discord_habit_tracker.services.current_date_resolver import CurrentDateResolver
 
@@ -39,11 +42,13 @@ class DiscordGateway:
         message_handler,
         streak_command,
         timezone_name: str,
+        membership_service,
     ):
         """Initialize the Discord gateway."""
 
         self._bot_token = bot_token
         self._message_handler = message_handler
+        self._membership_service = membership_service
 
         intents = discord.Intents.default()
         intents.messages = True
@@ -62,16 +67,39 @@ class DiscordGateway:
             timezone_name,
         )
 
-        async def streak(interaction: discord.Interaction):
+        self._streak_join_slash_command = DiscordStreakJoinSlashCommand(
+            self._membership_service,
+        )
+
+        streak_group = discord.app_commands.Group(
+            name="streak",
+            description="Manage your activity streak.",
+        )
+
+        async def stats(interaction: discord.Interaction):
             await self._streak_slash_command.handle(interaction)
 
-        self._tree.add_command(
+        async def join(interaction: discord.Interaction):
+            await self._streak_join_slash_command.handle(interaction)
+
+        streak_group.add_command(
             discord.app_commands.Command(
-                name="streak",
+                name="stats",
                 description="Show your current and longest activity streaks.",
-                callback=streak,
+                callback=stats,
             )
         )
+
+        streak_group.add_command(
+            discord.app_commands.Command(
+                name="join",
+                description="Join the activity tracker.",
+                callback=join,
+            )
+        )
+
+        self._tree.add_command(streak_group)
+
 
     async def start(self):
         """Start the Discord client."""

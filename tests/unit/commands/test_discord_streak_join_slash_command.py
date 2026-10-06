@@ -43,3 +43,5 @@ async def test_join_command_prompts_user_to_select_timezone():
         "Select your timezone to join the tracker.",
         view=interaction.response.send_message.call_args.kwargs["view"],
     )
+
+
