@@ -62,7 +62,6 @@ async def main():
         membership_repository,
         qualification_service,
         date_resolver,
-        config.tracked_user_timezone,
     )
 
     gateway = DiscordGateway(

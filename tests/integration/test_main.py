@@ -70,7 +70,6 @@ async def test_main_wires_application_dependencies(monkeypatch):
         mock_membership_repository,
         mock_qualification_service,
         mock_date_resolver,
-        "America/Chicago",
     )
 
     streak_service_mock.assert_called_once_with()

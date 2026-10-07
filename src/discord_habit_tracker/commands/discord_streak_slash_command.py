@@ -5,15 +5,26 @@ class DiscordStreakSlashCommand:
         self,
         streak_command,
         current_date_resolver,
-        timezone_name,
+        membership_repository,
     ):
         self._streak_command = streak_command
         self._current_date_resolver = current_date_resolver
-        self._timezone_name = timezone_name
+        self._membership_repository = membership_repository
 
     async def handle(self, interaction):
+        member = await self._membership_repository.get_member(
+            interaction.guild.id,
+            interaction.user.id,
+        )
+
+        if member is None:
+            await interaction.response.send_message(
+                "You're not participating in the tracker. Use `/streak join` first."
+            )
+            return
+
         current_date = self._current_date_resolver.resolve(
-            self._timezone_name,
+            member.timezone,
         )
 
         response = await self._streak_command.handle(
@@ -21,5 +32,6 @@ class DiscordStreakSlashCommand:
             interaction.user.id,
             current_date,
         )
+
 
         await interaction.response.send_message(response)
