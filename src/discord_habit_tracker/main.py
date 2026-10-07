@@ -16,6 +16,7 @@ from discord_habit_tracker.services.activity_qualification_service import Activi
 from discord_habit_tracker.services.activity_date_resolver import ActivityDateResolver
 from discord_habit_tracker.services.activity_stats_service import ActivityStatsService
 from discord_habit_tracker.services.streak_service import StreakService
+from discord_habit_tracker.services.membership_service import MembershipService
 
 # Commands
 from discord_habit_tracker.commands.streak_command import StreakCommand
@@ -35,6 +36,10 @@ async def main():
 
     activity_repository = SQLiteActivityRepository(database_path)
     membership_repository = SQLiteMembershipRepository(database_path)
+
+    membership_service = MembershipService(
+        membership_repository,
+    )
 
     qualification_service = ActivityQualificationService()
 
@@ -65,6 +70,7 @@ async def main():
         listener.handle_message,
         streak_command,
         config.tracked_user_timezone,
+        membership_service,
     )
 
     try:
