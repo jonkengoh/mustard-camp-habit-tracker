@@ -16,6 +16,7 @@ def test_gateway_initializes():
         streak_command=Mock(),
         timezone_name="Asia/Singapore",
         membership_service=Mock(),
+        membership_repository=Mock(),
     )
 
     assert gateway is not None
@@ -30,6 +31,7 @@ def test_gateway_creates_discord_client():
         streak_command=Mock(),
         timezone_name="Asia/Singapore",
         membership_service=Mock(),
+        membership_repository=Mock(),
     )
 
     assert isinstance(gateway._client, discord.Client)
@@ -44,6 +46,7 @@ def test_gateway_enables_message_content_intent():
         streak_command=Mock(),
         timezone_name="Asia/Singapore",
         membership_service=Mock(),
+        membership_repository=Mock(),
     )
 
     assert gateway._client.intents.message_content is True
@@ -58,6 +61,7 @@ async def test_gateway_starts_client():
         streak_command=Mock(),
         timezone_name="Asia/Singapore",
         membership_service=Mock(),
+        membership_repository=Mock(),
     )
 
     gateway._client.start = AsyncMock()
@@ -91,6 +95,7 @@ def test_on_message_registers_client_event(monkeypatch):
         streak_command=Mock(),
         timezone_name="Asia/Singapore",
         membership_service=Mock(),
+        membership_repository=Mock(),
     )
 
     mock_client.event.assert_any_call(gateway.on_message)
@@ -125,6 +130,7 @@ async def test_translate_forward_discord_message():
         streak_command=Mock(),
         timezone_name="Asia/Singapore",
         membership_service=Mock(),
+        membership_repository=Mock(),
     )
 
     await gateway.on_message(mock_message)
@@ -142,6 +148,7 @@ def test_discord_gateway_registers_streak_command():
         streak_command=streak_command,
         timezone_name="Asia/Singapore",
         membership_service=Mock(),
+        membership_repository=Mock(),
     )
 
     registered_commands = gateway._tree.get_commands()
@@ -163,6 +170,7 @@ async def test_discord_gateway_streak_command_delegates_to_handler():
         streak_command=streak_command,
         timezone_name="Asia/Singapore",
         membership_service=Mock(),
+        membership_repository=Mock()
     )
 
     gateway._streak_slash_command = Mock()
@@ -199,6 +207,7 @@ async def test_gateway_syncs_application_commands():
         streak_command=Mock(),
         timezone_name="Asia/Singapore",
         membership_service=Mock(),
+        membership_repository=Mock(),
     )
 
     gateway._tree.sync = AsyncMock()
@@ -217,6 +226,7 @@ def test_streak_command_contains_join_subcommand():
         streak_command=Mock(),
         timezone_name="Asia/Singapore",
         membership_service=membership_service,
+        membership_repository=Mock(),
     )
 
     streak_command = next(
@@ -245,6 +255,7 @@ def test_streak_command_contains_leave_subcommand():
         streak_command=Mock(),
         timezone_name="Asia/Singapore",
         membership_service=membership_service,
+        membership_repository=Mock(),
     )
 
     streak_command = next(
@@ -273,6 +284,7 @@ async def test_discord_gateway_leave_command_delegates_to_handler():
         streak_command=Mock(),
         timezone_name="Asia/Singapore",
         membership_service=Mock(),
+        membership_repository=Mock(),
     )
 
     gateway._streak_leave_slash_command = Mock()
@@ -297,3 +309,17 @@ async def test_discord_gateway_leave_command_delegates_to_handler():
     gateway._streak_leave_slash_command.handle.assert_awaited_once_with(
         interaction,
     )
+
+def test_gateway_injects_membership_repository_into_streak_command():
+    membership_repository = Mock()
+
+    gateway = DiscordGateway(
+        bot_token="test-token",
+        message_handler=Mock(),
+        streak_command=Mock(),
+        timezone_name="Asia/Singapore",
+        membership_repository=membership_repository,
+        membership_service=Mock(),
+    )
+
+    assert gateway._streak_slash_command._membership_repository is membership_repository

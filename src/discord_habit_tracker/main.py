@@ -69,6 +69,7 @@ async def main():
         listener.handle_message,
         streak_command,
         config.tracked_user_timezone,
+        membership_repository,
         membership_service,
     )
 

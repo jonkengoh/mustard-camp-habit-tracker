@@ -45,12 +45,14 @@ class DiscordGateway:
         message_handler,
         streak_command,
         timezone_name: str,
+        membership_repository,
         membership_service,
     ):
         """Initialize the Discord gateway."""
 
         self._bot_token = bot_token
         self._message_handler = message_handler
+        self._membership_repository = membership_repository
         self._membership_service = membership_service
 
         intents = discord.Intents.default()
@@ -67,7 +69,7 @@ class DiscordGateway:
         self._streak_slash_command = DiscordStreakSlashCommand(
             streak_command,
             CurrentDateResolver(),
-            timezone_name,
+            self._membership_repository,
         )
 
         self._streak_join_slash_command = DiscordStreakJoinSlashCommand(
