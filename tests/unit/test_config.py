@@ -24,19 +24,3 @@ def test_config_requires_bot_token(monkeypatch):
 
     with pytest.raises(ValueError):
         Config()
-
-
-def test_config_loads_tracked_member_timezone(monkeypatch):
-    """Test that Config loads the tracked member's timezone."""
-
-    monkeypatch.setenv("DISCORD_TOKEN", "test-token")
-    monkeypatch.setenv("DISCORD_TRACKED_USER_IDS", "12345")
-    monkeypatch.setenv(
-        "DISCORD_TRACKED_USER_TIMEZONE",
-        "America/Chicago",
-    )
-
-    config = Config()
-
-    assert config.tracked_user_timezone == "America/Chicago"
-

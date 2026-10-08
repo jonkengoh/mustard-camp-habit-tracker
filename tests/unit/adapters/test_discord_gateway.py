@@ -14,7 +14,6 @@ def test_gateway_initializes():
         "test-token",
         message_handler=Mock(),
         streak_command=Mock(),
-        timezone_name="Asia/Singapore",
         membership_service=Mock(),
         membership_repository=Mock(),
     )
@@ -29,7 +28,6 @@ def test_gateway_creates_discord_client():
         "test-token",
         message_handler=Mock(),
         streak_command=Mock(),
-        timezone_name="Asia/Singapore",
         membership_service=Mock(),
         membership_repository=Mock(),
     )
@@ -44,7 +42,6 @@ def test_gateway_enables_message_content_intent():
         "test-token",
         message_handler=Mock(),
         streak_command=Mock(),
-        timezone_name="Asia/Singapore",
         membership_service=Mock(),
         membership_repository=Mock(),
     )
@@ -59,7 +56,6 @@ async def test_gateway_starts_client():
         "test-token",
         message_handler=Mock(),
         streak_command=Mock(),
-        timezone_name="Asia/Singapore",
         membership_service=Mock(),
         membership_repository=Mock(),
     )
@@ -93,7 +89,6 @@ def test_on_message_registers_client_event(monkeypatch):
         bot_token="test-token",
         message_handler=Mock(),
         streak_command=Mock(),
-        timezone_name="Asia/Singapore",
         membership_service=Mock(),
         membership_repository=Mock(),
     )
@@ -128,7 +123,6 @@ async def test_translate_forward_discord_message():
         "test-token",
         mock_handler,
         streak_command=Mock(),
-        timezone_name="Asia/Singapore",
         membership_service=Mock(),
         membership_repository=Mock(),
     )
@@ -146,7 +140,6 @@ def test_discord_gateway_registers_streak_command():
         bot_token="test-token",
         message_handler=Mock(),
         streak_command=streak_command,
-        timezone_name="Asia/Singapore",
         membership_service=Mock(),
         membership_repository=Mock(),
     )
@@ -168,7 +161,6 @@ async def test_discord_gateway_streak_command_delegates_to_handler():
         bot_token="test-token",
         message_handler=Mock(),
         streak_command=streak_command,
-        timezone_name="Asia/Singapore",
         membership_service=Mock(),
         membership_repository=Mock()
     )
@@ -205,7 +197,6 @@ async def test_gateway_syncs_application_commands():
         bot_token="test-token",
         message_handler=Mock(),
         streak_command=Mock(),
-        timezone_name="Asia/Singapore",
         membership_service=Mock(),
         membership_repository=Mock(),
     )
@@ -224,7 +215,6 @@ def test_streak_command_contains_join_subcommand():
         bot_token="test-token",
         message_handler=Mock(),
         streak_command=Mock(),
-        timezone_name="Asia/Singapore",
         membership_service=membership_service,
         membership_repository=Mock(),
     )
@@ -253,7 +243,6 @@ def test_streak_command_contains_leave_subcommand():
         bot_token="test-token",
         message_handler=Mock(),
         streak_command=Mock(),
-        timezone_name="Asia/Singapore",
         membership_service=membership_service,
         membership_repository=Mock(),
     )
@@ -282,7 +271,6 @@ async def test_discord_gateway_leave_command_delegates_to_handler():
         bot_token="test-token",
         message_handler=Mock(),
         streak_command=Mock(),
-        timezone_name="Asia/Singapore",
         membership_service=Mock(),
         membership_repository=Mock(),
     )
@@ -317,7 +305,6 @@ def test_gateway_injects_membership_repository_into_streak_command():
         bot_token="test-token",
         message_handler=Mock(),
         streak_command=Mock(),
-        timezone_name="Asia/Singapore",
         membership_repository=membership_repository,
         membership_service=Mock(),
     )

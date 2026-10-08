@@ -44,7 +44,6 @@ class DiscordGateway:
         bot_token: str,
         message_handler,
         streak_command,
-        timezone_name: str,
         membership_repository,
         membership_service,
     ):

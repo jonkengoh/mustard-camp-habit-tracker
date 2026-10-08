@@ -87,7 +87,6 @@ async def test_main_wires_application_dependencies(monkeypatch):
         "test-token",
         mock_listener.handle_message,
         mock_streak_command,
-        "America/Chicago",
         mock_membership_repository,
         mock_membership_service,
     )
