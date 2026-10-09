@@ -77,6 +77,23 @@ class SQLiteMembershipRepository:
         self._connection.commit()
 
 
+    async def update_timezone(
+        self,
+        guild_id: int,
+        user_id: int,
+        timezone: str,
+    ):
+        self._connection.execute(
+            """
+            UPDATE members
+            SET timezone = ?
+            WHERE guild_id = ? AND user_id = ?
+            """,
+            (timezone, guild_id, user_id),
+        )
+        self._connection.commit()
+
+
     def close(self):
         """Close the database connection."""
 
