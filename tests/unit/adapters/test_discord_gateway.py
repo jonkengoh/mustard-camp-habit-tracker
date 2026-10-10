@@ -134,6 +134,7 @@ async def test_translate_forward_discord_message():
 
 
 def test_discord_gateway_registers_streak_command():
+    """Test that the Discord Gateway registers the /streak command."""
     streak_command = Mock()
 
     gateway = DiscordGateway(
@@ -190,9 +191,7 @@ async def test_discord_gateway_streak_command_delegates_to_handler():
 
 
 async def test_gateway_syncs_application_commands():
-
     """Test that the gateway syncs application commands with Discord."""
-
     gateway = DiscordGateway(
         bot_token="test-token",
         message_handler=Mock(),
@@ -209,6 +208,7 @@ async def test_gateway_syncs_application_commands():
 
 
 def test_streak_command_contains_join_subcommand():
+    """Test that the streak command contains the join subcommand."""
     membership_service = Mock()
 
     gateway = DiscordGateway(
@@ -237,6 +237,7 @@ def test_streak_command_contains_join_subcommand():
 
 
 def test_streak_command_contains_leave_subcommand():
+    """Test that the streak command contains the leave subcommand."""
     membership_service = Mock()
 
     gateway = DiscordGateway(
@@ -275,7 +276,6 @@ async def test_discord_gateway_leave_command_delegates_to_handler():
         membership_repository=Mock(),
     )
 
-    gateway._streak_leave_slash_command = Mock()
     gateway._streak_leave_slash_command.handle = AsyncMock()
 
     interaction = Mock()

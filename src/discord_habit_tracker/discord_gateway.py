@@ -80,6 +80,10 @@ class DiscordGateway:
             self._membership_service,
         )
 
+        self._streak_leave_slash_command = DiscordStreakLeaveSlashCommand(
+            self._membership_service,
+        )
+
         self._streak_timezone_slash_command = DiscordStreakTimezoneSlashCommand(
             self._membership_service,
         )
