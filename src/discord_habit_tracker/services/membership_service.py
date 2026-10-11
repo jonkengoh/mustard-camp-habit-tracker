@@ -54,3 +54,27 @@ class MembershipService:
             guild_id,
             user_id,
         )
+
+    async def update_timezone(
+        self,
+        guild_id: int,
+        user_id: int,
+        timezone: str,
+    ):
+        existing_member = await self._membership_repository.get_member(
+            guild_id,
+            user_id,
+        )
+        if existing_member is None:
+            raise MemberNotFoundError
+
+        try:
+            ZoneInfo(timezone)
+        except ZoneInfoNotFoundError:
+            raise InvalidTimezoneError
+
+        await self._membership_repository.update_timezone(
+            guild_id,
+            user_id,
+            timezone,
+        )

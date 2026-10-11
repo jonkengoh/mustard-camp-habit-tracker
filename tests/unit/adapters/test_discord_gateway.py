@@ -134,6 +134,7 @@ async def test_translate_forward_discord_message():
 
 
 def test_discord_gateway_registers_streak_command():
+    """Test that the Discord Gateway registers the /streak command."""
     streak_command = Mock()
 
     gateway = DiscordGateway(
@@ -162,7 +163,7 @@ async def test_discord_gateway_streak_command_delegates_to_handler():
         message_handler=Mock(),
         streak_command=streak_command,
         membership_service=Mock(),
-        membership_repository=Mock()
+        membership_repository=Mock(),
     )
 
     gateway._streak_slash_command = Mock()
@@ -190,9 +191,7 @@ async def test_discord_gateway_streak_command_delegates_to_handler():
 
 
 async def test_gateway_syncs_application_commands():
-
     """Test that the gateway syncs application commands with Discord."""
-
     gateway = DiscordGateway(
         bot_token="test-token",
         message_handler=Mock(),
@@ -209,6 +208,7 @@ async def test_gateway_syncs_application_commands():
 
 
 def test_streak_command_contains_join_subcommand():
+    """Test that the streak command contains the join subcommand."""
     membership_service = Mock()
 
     gateway = DiscordGateway(
@@ -237,6 +237,7 @@ def test_streak_command_contains_join_subcommand():
 
 
 def test_streak_command_contains_leave_subcommand():
+    """Test that the streak command contains the leave subcommand."""
     membership_service = Mock()
 
     gateway = DiscordGateway(
@@ -275,7 +276,6 @@ async def test_discord_gateway_leave_command_delegates_to_handler():
         membership_repository=Mock(),
     )
 
-    gateway._streak_leave_slash_command = Mock()
     gateway._streak_leave_slash_command.handle = AsyncMock()
 
     interaction = Mock()
@@ -310,3 +310,64 @@ def test_gateway_injects_membership_repository_into_streak_command():
     )
 
     assert gateway._streak_slash_command._membership_repository is membership_repository
+
+
+def test_streak_command_contains_timezone_subcommand():
+    gateway = DiscordGateway(
+        bot_token="test-token",
+        message_handler=Mock(),
+        streak_command=Mock(),
+        membership_service=Mock(),
+        membership_repository=Mock(),
+    )
+
+    streak_command = next(
+        command
+        for command in gateway._tree.get_commands()
+        if command.name == "streak"
+    )
+
+    assert isinstance(streak_command, discord.app_commands.Group)
+
+    timezone_command = next(
+        command
+        for command in streak_command.commands
+        if command.name == "timezone"
+    )
+
+    assert timezone_command is not None
+
+
+async def test_discord_gateway_timezone_command_delegates_to_handler():
+    """Test that the timezone command delegates to its Discord adapter."""
+
+    gateway = DiscordGateway(
+        bot_token="test-token",
+        message_handler=Mock(),
+        streak_command=Mock(),
+        membership_service=Mock(),
+        membership_repository=Mock(),
+    )
+
+    gateway._streak_timezone_slash_command = Mock()
+    gateway._streak_timezone_slash_command.handle = AsyncMock()
+
+    interaction = Mock()
+
+    streak_group = next(
+        command
+        for command in gateway._tree.get_commands()
+        if command.name == "streak"
+    )
+
+    timezone_command = next(
+        command
+        for command in streak_group.commands
+        if command.name == "timezone"
+    )
+
+    await timezone_command.callback(interaction)
+
+    gateway._streak_timezone_slash_command.handle.assert_awaited_once_with(
+        interaction,
+    )

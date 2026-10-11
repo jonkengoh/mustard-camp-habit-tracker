@@ -28,6 +28,11 @@ from discord_habit_tracker.commands.discord_streak_join_slash_command import (
 from discord_habit_tracker.commands.discord_streak_leave_slash_command import (
     DiscordStreakLeaveSlashCommand,
 )
+
+from discord_habit_tracker.commands.discord_streak_timezone_slash_command import (
+    DiscordStreakTimezoneSlashCommand,
+)
+
 from discord_habit_tracker.models.message_event import MessageEvent
 from discord_habit_tracker.services.current_date_resolver import CurrentDateResolver
 
@@ -75,6 +80,14 @@ class DiscordGateway:
             self._membership_service,
         )
 
+        self._streak_leave_slash_command = DiscordStreakLeaveSlashCommand(
+            self._membership_service,
+        )
+
+        self._streak_timezone_slash_command = DiscordStreakTimezoneSlashCommand(
+            self._membership_service,
+        )
+
         streak_group = discord.app_commands.Group(
             name="streak",
             description="Manage your activity streak.",
@@ -85,6 +98,9 @@ class DiscordGateway:
 
         async def join(interaction: discord.Interaction):
             await self._streak_join_slash_command.handle(interaction)
+
+        async def timezone(interaction: discord.Interaction):
+            await self._streak_timezone_slash_command.handle(interaction)
 
         async def leave(interaction: discord.Interaction):
             await self._streak_leave_slash_command.handle(interaction)
@@ -103,6 +119,14 @@ class DiscordGateway:
                 name="join",
                 description="Join the activity tracker.",
                 callback=join,
+            )
+        )
+
+        streak_group.add_command(
+            discord.app_commands.Command(
+                name="timezone",
+                description="Change your tracker timezone.",
+                callback=timezone,
             )
         )
 

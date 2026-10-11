@@ -115,6 +115,69 @@ async def test_adding_duplicate_member_does_not_fail():
     )
 
 
+async def test_member_timezone_can_be_updated():
+    """Test that updating a member changes their stored timezone."""
+
+    repository = SQLiteMembershipRepository(":memory:")
+
+    await repository.add_member(
+        999,
+        12345,
+        "Asia/Singapore",
+    )
+
+    await repository.update_timezone(
+        999,
+        12345,
+        "Asia/Tokyo",
+    )
+
+    result = await repository.get_member(999, 12345)
+
+    assert result == TrackerMember(
+        guild_id=999,
+        user_id=12345,
+        timezone="Asia/Tokyo",
+    )
+
+
+async def test_updating_timezone_does_not_affect_other_members():
+    """Test that updating one member's timezone leaves other members unchanged."""
+
+    repository = SQLiteMembershipRepository(":memory:")
+
+    await repository.add_member(
+        999,
+        12345,
+        "Asia/Singapore",
+    )
+    await repository.add_member(
+        999,
+        67890,
+        "Asia/Hong_Kong",
+    )
+
+    await repository.update_timezone(
+        999,
+        12345,
+        "Asia/Tokyo",
+    )
+
+    updated_member = await repository.get_member(999, 12345)
+    unchanged_member = await repository.get_member(999, 67890)
+
+    assert updated_member == TrackerMember(
+        guild_id=999,
+        user_id=12345,
+        timezone="Asia/Tokyo",
+    )
+    assert unchanged_member == TrackerMember(
+        guild_id=999,
+        user_id=67890,
+        timezone="Asia/Hong_Kong",
+    )
+
+
 def test_repository_can_be_closed(tmp_path):
     """Test that the repository closes its database connection."""
 

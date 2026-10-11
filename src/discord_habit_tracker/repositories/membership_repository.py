@@ -38,3 +38,18 @@ class MembershipRepository:
         """Remove a user from a guild's tracker."""
 
         self._members.pop((guild_id, user_id), None)
+
+
+    async def update_timezone(
+        self,
+        guild_id: int,
+        user_id: int,
+        timezone: str,
+    ):
+        member = self._members[(guild_id, user_id)]
+
+        self._members[(guild_id, user_id)] = TrackerMember(
+            guild_id=member.guild_id,
+            user_id=member.user_id,
+            timezone=timezone,
+        )
