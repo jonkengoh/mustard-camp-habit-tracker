@@ -2,7 +2,7 @@
 
 A production-quality Discord bot that automatically tracks daily activity and habit streaks.
 
-> **Current Status:** 🚧 Phase 4 – Guild-Scoped Activity Tracking Complete — Phase 5: Membership Management Next
+> **Current Status:** 🚧 Phase 5 – Membership Management Complete — Phase 6: Activity Logging Next
 
 ## Project Roadmap
 ```
@@ -46,11 +46,14 @@ PHASE 4 — Guild-Scoped Tracking
 └── ✅ Remove global tracked-user config
 
 PHASE 5 — Membership Management
-├── ⬜ Persistent membership storage
-├── ⬜ /streak join
-├── ⬜ /streak leave
-├── ⬜ Membership command testing
-└── ⬜ Membership lifecycle handling
+├── ✅ Persistent SQLite membership storage
+├── ✅ /streak join
+├── ✅ /streak leave
+├── ✅ /streak timezone
+├── ✅ Membership command testing
+├── ✅ Membership lifecycle handling
+├── ✅ Timezone update persistence
+└── ✅ Live Discord command verification
 
 PHASE 6 — Activity Logging
 ├── ⬜ #daily-streak channel logging
@@ -216,24 +219,27 @@ The Event Listener does not determine membership itself. Membership is provided 
 
 ### Membership Repository
 
-Responsible for tracker membership.
+Responsible for tracker membership and member timezone preferences.
 
 Membership is scoped to a Discord guild and user:
 
-```text
 (guild_id, user_id)
-```
-The current implementation provides in-memory membership storage.
+
+The application provides both in-memory and SQLite-backed membership repositories.
 
 It supports:
 
 * Adding a user to a guild’s tracker
 * Checking whether a user is a member
 * Removing a user from a guild’s tracker
+* Updating a member’s configured timezone
 * Isolating membership between guilds
 * Isolating membership between users
+* Persisting membership and timezone preferences across application restarts
 
-Persistent membership storage and Discord commands for joining and leaving the tracker are planned next.
+The membership service coordinates membership operations and validates timezone selections before updating stored preferences.
+
+Discord slash-command adapters expose membership operations through /streak join, /streak leave, and /streak timezone.
 
 ### Activity Qualification Service
 
@@ -380,6 +386,23 @@ The command is exposed through Discord as:
 ```
 /streak
 ```
+
+### Membership Commands
+
+The membership command layer allows users to manage their participation in the activity tracker directly through Discord.
+
+The available commands are:
+
+* /streak join — Join the activity tracker for the current guild.
+* /streak leave — Leave the activity tracker for the current guild.
+* /streak timezone — Select a new timezone for an existing membership.
+
+Membership commands operate within the current Discord guild. A user’s membership in one guild does not determine their membership in another.
+
+Timezone preferences are stored with membership data and are used when resolving the member’s local activity dates and current streak date.
+
+Leaving the tracker removes the membership but preserves previously recorded activity history. Rejoining allows the user to resume participation without discarding that history.
+
 
 ### Configuration
 
@@ -580,15 +603,31 @@ The current membership implementation is in-memory. Membership persistence and l
 
 ### Phase 5 — Membership Management
 
-Planned work:
+Persistent Membership
 
-* Add persistent SQLite membership storage
-* Add /streak join
-* Add /streak leave
-* Prevent duplicate membership
-* Handle leaving an inactive membership
-* Test membership command behavior
-* Preserve membership across application restarts
+* ✅ Add SQLite-backed membership storage
+* ✅ Persist guild and user membership
+* ✅ Persist member timezone preferences
+* ✅ Support membership lookup and removal
+* ✅ Test membership persistence
+
+Membership Commands
+
+* ✅ Add /streak join
+* ✅ Add /streak leave
+* ✅ Add /streak timezone
+* ✅ Prevent duplicate membership
+* ✅ Handle leaving an inactive membership
+* ✅ Test membership command behavior
+* ✅ Preserve activity history when membership is removed
+* ✅ Verify commands against a live Discord server
+
+Timezone Management
+
+* ✅ Provide a curated timezone selection
+* ✅ Validate timezone selections
+* ✅ Update existing member timezone preferences
+* ✅ Persist timezone changes across application restarts
 
 ### Phase 6 — Activity Logging
 
@@ -624,29 +663,30 @@ Potential future functionality includes:
 * Web dashboard
 
 Additional functionality will be introduced as requirements emerge rather than adding abstractions prematurely.
-## Running the Bot
 
-The project currently uses a src layout and can be run from the repository root with:
-```bash
-PYTHONPATH=src python -m discord_habit_tracker.main
-```
 
-Before starting the bot, configure the required environment variables in .env:
-```
+## Before starting the bot, configure the required environment variables in .env:
+
 DISCORD_TOKEN=your_bot_token
 DISCORD_TRACKED_USER_TIMEZONE=your_timezone
-```
 
-The Discord bot must have the required message-related intents enabled in the Discord Developer Portal.
+The configured timezone is used as the default timezone for the application. Individual members can subsequently select their own timezone through /streak timezone.
 
-The bot must also be installed in the target Discord server with the appropriate permissions and application-command scope.
+The Discord bot must have the required message-related intents enabled in the Discord Developer Portal. It must also be installed in the target Discord server with the appropriate permissions and application-command scope.
 
-Once running, the bot listens for qualifying activity from the configured tracked user and records the first qualifying activity for each local calendar day.
+Once running, the bot receives Discord messages and records qualifying activity for users who have joined the tracker in the relevant guild.
 
-The current Discord command is:
+Available commands:
 ```
 /streak
+/streak join
+/streak leave
+/streak timezone
 ```
+
+The /streak command displays current and longest streak statistics. Membership commands manage participation in the tracker, while the timezone command allows existing members to update their local timezone preference.
+
+Activity history and membership data are persisted in SQLite and survive application restarts.
 
 ## Development Philosophy
 
@@ -672,7 +712,7 @@ The project favors simple designs that can evolve as requirements become clearer
 
 The project uses pytest and pytest-asyncio for automated testing.
 
-Current test suite: 58 tests passing ✅
+Current test suite: 108 tests passing ✅
 
 Testing currently covers:
 
@@ -703,6 +743,11 @@ Testing currently covers:
 * Streak command behavior
 * Discord streak command invocation
 * Discord application command registration
+* SQLite membership repository behaviour
+* Membership service validation and lifecycle
+* Timezone update behaviour
+* Membership command invocation
+* Discord membership-command registration
 
 Tests are organized into unit and integration tests.
 
@@ -711,19 +756,37 @@ tests/
 ├── integration/
 │   ├── test_main.py
 │   └── test_message_flow.py
-│
 ├── unit/
 │   ├── adapters/
+│   │   └── test_discord_gateway.py
 │   ├── commands/
+│   │   ├── test_discord_streak_join_slash_command.py
+│   │   ├── test_discord_streak_leave_slash_command.py
+│   │   ├── test_discord_streak_slash_command.py
+│   │   ├── test_discord_timezone_select.py
+│   │   ├── test_streak_command.py
+│   │   └── test_timezone_select_view.py
+│   ├── models/
+│   │   ├── test_activity_event.py
+│   │   ├── test_message_event.py
+│   │   └── test_tracker_member.py
 │   ├── repositories/
+│   │   ├── test_activity_repository.py
+│   │   ├── test_membership_repository.py
+│   │   ├── test_sqlite_activity_repository.py
+│   │   └── test_sqlite_membership_repository.py
 │   ├── services/
+│   │   ├── test_activity_date_resolver.py
+│   │   ├── test_activity_qualification.py
+│   │   ├── test_activity_stats_service.py
+│   │   ├── test_current_date_resolver.py
+│   │   ├── test_membership_service.py
+│   │   └── test_streak_service.py
 │   ├── test_config.py
 │   └── test_event_listener.py
-│
 ├── test_activity.py
-├── test_activity_event.py
 ├── test_database.py
-└── test_message_event.py
+└── test_timezones.py
 ```
 
 The test suite is expanded alongside new functionality to ensure existing behavior remains intact.
@@ -735,25 +798,37 @@ discord-habit-tracker/
 ├── src/
 │   └── discord_habit_tracker/
 │       ├── commands/
+│       │   ├── __init__.py
+│       │   ├── discord_streak_join_slash_command.py
+│       │   ├── discord_streak_leave_slash_command.py
 │       │   ├── discord_streak_slash_command.py
-│       │   └── streak_command.py
+│       │   ├── discord_timezone_select.py
+│       │   ├── streak_command.py
+│       │   └── timezone_select_view.py
 │       ├── models/
+│       │   ├── __init__.py
 │       │   ├── activity_event.py
-│       │   └── message_event.py
+│       │   ├── message_event.py
+│       │   └── tracker_member.py
 │       ├── repositories/
 │       │   ├── activity_repository.py
 │       │   ├── membership_repository.py
-│       │   └── sqlite_activity_repository.py
+│       │   ├── sqlite_activity_repository.py
+│       │   └── sqlite_membership_repository.py
 │       ├── services/
 │       │   ├── activity_date_resolver.py
 │       │   ├── activity_qualification_service.py
 │       │   ├── activity_stats_service.py
 │       │   ├── current_date_resolver.py
+│       │   ├── exceptions.py
+│       │   ├── membership_service.py
 │       │   └── streak_service.py
+│       ├── __init__.py
 │       ├── config.py
 │       ├── discord_gateway.py
 │       ├── event_listener.py
-│       └── main.py
+│       ├── main.py
+│       └── timezones.py
 │
 ├── tests/
 │   ├── integration/
@@ -761,26 +836,35 @@ discord-habit-tracker/
 │   │   └── test_message_flow.py
 │   ├── unit/
 │   │   ├── adapters/
-│   │   │   ├── test_discord_gateway.py
-│   │   │   └── test_discord_streak_slash_command.py
+│   │   │   └── test_discord_gateway.py
 │   │   ├── commands/
-│   │   │   └── test_streak_command.py
+│   │   │   ├── test_discord_streak_join_slash_command.py
+│   │   │   ├── test_discord_streak_leave_slash_command.py
+│   │   │   ├── test_discord_streak_slash_command.py
+│   │   │   ├── test_discord_timezone_select.py
+│   │   │   ├── test_streak_command.py
+│   │   │   └── test_timezone_select_view.py
+│   │   ├── models/
+│   │   │   ├── test_activity_event.py
+│   │   │   ├── test_message_event.py
+│   │   │   └── test_tracker_member.py
 │   │   ├── repositories/
 │   │   │   ├── test_activity_repository.py
 │   │   │   ├── test_membership_repository.py
-│   │   │   └── test_sqlite_activity_repository.py
+│   │   │   ├── test_sqlite_activity_repository.py
+│   │   │   └── test_sqlite_membership_repository.py
 │   │   ├── services/
 │   │   │   ├── test_activity_date_resolver.py
 │   │   │   ├── test_activity_qualification.py
 │   │   │   ├── test_activity_stats_service.py
 │   │   │   ├── test_current_date_resolver.py
+│   │   │   ├── test_membership_service.py
 │   │   │   └── test_streak_service.py
 │   │   ├── test_config.py
 │   │   └── test_event_listener.py
 │   ├── test_activity.py
-│   ├── test_activity_event.py
 │   ├── test_database.py
-│   └── test_message_event.py
+│   └── test_timezones.py
 │
 ├── data/
 │   └── activity_tracker.db
