@@ -115,3 +115,5 @@ class EventListener:
 
         # Forward the activity to the repository for recording
         await self._activity_repository.record(activity)
+
+        return activity

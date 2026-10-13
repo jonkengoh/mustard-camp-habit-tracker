@@ -45,7 +45,7 @@ async def test_event_listener_handles_message():
         mock_date_resolver,
     )
 
-    await listener.handle_message(event)
+    result = await listener.handle_message(event)
 
     membership_repository.get_member.assert_awaited_once_with(
         event.guild_id,
@@ -59,6 +59,7 @@ async def test_event_listener_handles_message():
     )
 
     mock_repository.record.assert_awaited_once_with(expected_activity)
+    assert result == expected_activity
 
 
 async def test_event_listener_ignores_non_member():
@@ -184,9 +185,11 @@ async def test_event_listener_ignores_if_member_has_existing_activity():
         mock_date_resolver,
     )
 
-    await listener.handle_message(event)
+    result = await listener.handle_message(event)
 
     mock_repository.record.assert_not_awaited()  # Ensure that the record method was not called for a user who already has an activity recorded for that date
+    assert result is None
+
 
 async def test_event_listener_checks_activity_qualification():
     """The EventListener should ask whether a tracked message qualifies as activity."""
