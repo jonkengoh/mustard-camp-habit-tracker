@@ -70,6 +70,21 @@ async def test_recording_duplicate_activity_does_not_fail():
 
     assert result is True
 
+    cursor = repository._connection.execute(
+        """
+        SELECT COUNT(*)
+        FROM activities
+        WHERE guild_id = ? AND user_id = ? AND activity_date = ?
+        """,
+        (
+            activity.guild_id,
+            activity.user_id,
+            activity.activity_date.isoformat(),
+        ),
+    )
+
+    assert cursor.fetchone()[0] == 1
+
 
 @pytest.mark.asyncio
 async def test_recorded_activity_persists_across_repository_instances(tmp_path):
