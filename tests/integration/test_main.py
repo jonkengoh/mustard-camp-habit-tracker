@@ -19,6 +19,7 @@ async def test_main_wires_application_dependencies(monkeypatch):
     mock_gateway = Mock()
     mock_membership_repository = Mock()
     mock_membership_service = Mock()
+    mock_activity_notifier = Mock()
 
     mock_gateway.start = AsyncMock()
 
@@ -33,6 +34,7 @@ async def test_main_wires_application_dependencies(monkeypatch):
     gateway_mock = Mock(return_value=mock_gateway)
     sqlite_membership_repository_mock = Mock(return_value=mock_membership_repository)
     membership_service_mock = Mock(return_value=mock_membership_service)
+    activity_notifier_mock = Mock(return_value=mock_activity_notifier)
 
     monkeypatch.setattr(main, "Config", config_mock)
     monkeypatch.setattr(main, "SQLiteActivityRepository", sqlite_activity_repository_mock)
@@ -45,6 +47,7 @@ async def test_main_wires_application_dependencies(monkeypatch):
     monkeypatch.setattr(main,"ActivityStatsService", activity_stats_service_mock)
     monkeypatch.setattr(main, "StreakCommand", streak_command_mock)
     monkeypatch.setattr(main, "DiscordGateway", gateway_mock)
+    monkeypatch.setattr(main, "DiscordActivityNotifier", activity_notifier_mock)
 
     # Act
     await main.main()
@@ -89,7 +92,11 @@ async def test_main_wires_application_dependencies(monkeypatch):
         mock_streak_command,
         mock_membership_repository,
         mock_membership_service,
+        activity_stats_service=mock_stats_service,
+        activity_notifier=mock_activity_notifier,
     )
+
+    activity_notifier_mock.assert_called_once_with()
 
     mock_gateway.start.assert_awaited_once()
 

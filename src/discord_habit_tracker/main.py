@@ -17,6 +17,7 @@ from discord_habit_tracker.services.activity_date_resolver import ActivityDateRe
 from discord_habit_tracker.services.activity_stats_service import ActivityStatsService
 from discord_habit_tracker.services.streak_service import StreakService
 from discord_habit_tracker.services.membership_service import MembershipService
+from discord_habit_tracker.adapters.discord_activity_notifier import DiscordActivityNotifier
 
 # Commands
 from discord_habit_tracker.commands.streak_command import StreakCommand
@@ -47,6 +48,8 @@ async def main():
 
     streak_service = StreakService()
 
+    activity_notifier = DiscordActivityNotifier()
+
     activity_stats_service = ActivityStatsService(
         activity_repository,
         streak_service,
@@ -70,6 +73,8 @@ async def main():
         streak_command,
         membership_repository,
         membership_service,
+        activity_stats_service=activity_stats_service,
+        activity_notifier=activity_notifier,
     )
 
     try:

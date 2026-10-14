@@ -1,10 +1,12 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
+
 from unittest.mock import AsyncMock, Mock
 
 import discord
 
 from discord_habit_tracker.discord_gateway import DiscordGateway
 from discord_habit_tracker.models.message_event import MessageEvent
+from discord_habit_tracker.models.activity_event import ActivityEvent
 
 
 def test_gateway_initializes():
@@ -16,6 +18,8 @@ def test_gateway_initializes():
         streak_command=Mock(),
         membership_service=Mock(),
         membership_repository=Mock(),
+        activity_stats_service=Mock(),
+        activity_notifier=Mock(),
     )
 
     assert gateway is not None
@@ -30,6 +34,8 @@ def test_gateway_creates_discord_client():
         streak_command=Mock(),
         membership_service=Mock(),
         membership_repository=Mock(),
+        activity_stats_service=Mock(),
+        activity_notifier=Mock(),
     )
 
     assert isinstance(gateway._client, discord.Client)
@@ -44,6 +50,8 @@ def test_gateway_enables_message_content_intent():
         streak_command=Mock(),
         membership_service=Mock(),
         membership_repository=Mock(),
+        activity_stats_service=Mock(),
+        activity_notifier=Mock(),
     )
 
     assert gateway._client.intents.message_content is True
@@ -58,6 +66,8 @@ async def test_gateway_starts_client():
         streak_command=Mock(),
         membership_service=Mock(),
         membership_repository=Mock(),
+        activity_stats_service=Mock(),
+        activity_notifier=Mock(),
     )
 
     gateway._client.start = AsyncMock()
@@ -91,6 +101,8 @@ def test_on_message_registers_client_event(monkeypatch):
         streak_command=Mock(),
         membership_service=Mock(),
         membership_repository=Mock(),
+        activity_stats_service=Mock(),
+        activity_notifier=Mock(),
     )
 
     mock_client.event.assert_any_call(gateway.on_message)
@@ -116,7 +128,7 @@ async def test_translate_forward_discord_message():
         timestamp=known_timestamp,
     )
 
-    mock_handler = AsyncMock()
+    mock_handler = AsyncMock(return_value=None)
 
     # Gateway initialize
     gateway = DiscordGateway(
@@ -125,6 +137,8 @@ async def test_translate_forward_discord_message():
         streak_command=Mock(),
         membership_service=Mock(),
         membership_repository=Mock(),
+        activity_stats_service=Mock(),
+        activity_notifier=Mock(),
     )
 
     await gateway.on_message(mock_message)
@@ -143,6 +157,8 @@ def test_discord_gateway_registers_streak_command():
         streak_command=streak_command,
         membership_service=Mock(),
         membership_repository=Mock(),
+        activity_stats_service=Mock(),
+        activity_notifier=Mock(),
     )
 
     registered_commands = gateway._tree.get_commands()
@@ -164,6 +180,8 @@ async def test_discord_gateway_streak_command_delegates_to_handler():
         streak_command=streak_command,
         membership_service=Mock(),
         membership_repository=Mock(),
+        activity_stats_service=Mock(),
+        activity_notifier=Mock(),
     )
 
     gateway._streak_slash_command = Mock()
@@ -198,6 +216,8 @@ async def test_gateway_syncs_application_commands():
         streak_command=Mock(),
         membership_service=Mock(),
         membership_repository=Mock(),
+        activity_stats_service=Mock(),
+        activity_notifier=Mock(),
     )
 
     gateway._tree.sync = AsyncMock()
@@ -217,6 +237,8 @@ def test_streak_command_contains_join_subcommand():
         streak_command=Mock(),
         membership_service=membership_service,
         membership_repository=Mock(),
+        activity_stats_service=Mock(),
+        activity_notifier=Mock(),
     )
 
     streak_command = next(
@@ -246,6 +268,8 @@ def test_streak_command_contains_leave_subcommand():
         streak_command=Mock(),
         membership_service=membership_service,
         membership_repository=Mock(),
+        activity_stats_service=Mock(),
+        activity_notifier=Mock(),
     )
 
     streak_command = next(
@@ -274,6 +298,8 @@ async def test_discord_gateway_leave_command_delegates_to_handler():
         streak_command=Mock(),
         membership_service=Mock(),
         membership_repository=Mock(),
+        activity_stats_service=Mock(),
+        activity_notifier=Mock(),
     )
 
     gateway._streak_leave_slash_command.handle = AsyncMock()
@@ -307,6 +333,8 @@ def test_gateway_injects_membership_repository_into_streak_command():
         streak_command=Mock(),
         membership_repository=membership_repository,
         membership_service=Mock(),
+        activity_stats_service=Mock(),
+        activity_notifier=Mock(),
     )
 
     assert gateway._streak_slash_command._membership_repository is membership_repository
@@ -319,6 +347,8 @@ def test_streak_command_contains_timezone_subcommand():
         streak_command=Mock(),
         membership_service=Mock(),
         membership_repository=Mock(),
+        activity_stats_service=Mock(),
+        activity_notifier=Mock(),
     )
 
     streak_command = next(
@@ -347,6 +377,8 @@ async def test_discord_gateway_timezone_command_delegates_to_handler():
         streak_command=Mock(),
         membership_service=Mock(),
         membership_repository=Mock(),
+        activity_stats_service=Mock(),
+        activity_notifier=Mock(),
     )
 
     gateway._streak_timezone_slash_command = Mock()
@@ -371,3 +403,90 @@ async def test_discord_gateway_timezone_command_delegates_to_handler():
     gateway._streak_timezone_slash_command.handle.assert_awaited_once_with(
         interaction,
     )
+
+
+async def test_gateway_notifies_when_new_activity_is_recorded():
+    """Test that a newly recorded activity triggers a streak notification."""
+
+    activity = ActivityEvent(
+        guild_id=999,
+        user_id=12345,
+        activity_date=date(2026, 10, 14),
+    )
+
+    message_handler = AsyncMock(return_value=activity)
+
+    activity_stats_service = Mock()
+    activity_stats_service.get_current_streak = AsyncMock(return_value=4)
+
+    activity_notifier = Mock()
+    activity_notifier.notify = AsyncMock()
+
+    guild = Mock()
+
+    message = Mock()
+    message.guild = guild
+    message.author.id = 12345
+    message.created_at = datetime(
+        2026, 10, 14, 2, 0, tzinfo=timezone.utc
+    )
+    message.content = "Hello!"
+
+    gateway = DiscordGateway(
+        bot_token="test-token",
+        message_handler=message_handler,
+        streak_command=Mock(),
+        membership_service=Mock(),
+        membership_repository=Mock(),
+        activity_stats_service=activity_stats_service,
+        activity_notifier=activity_notifier,
+    )
+
+    await gateway.on_message(message)
+
+    activity_stats_service.get_current_streak.assert_awaited_once_with(
+        999,
+        12345,
+        date(2026, 10, 14),
+    )
+
+    activity_notifier.notify.assert_awaited_once_with(
+        guild,
+        user_id=12345,
+        current_streak=4,
+    )
+
+
+async def test_gateway_does_not_notify_when_no_new_activity_is_recorded():
+    """Test that the gateway skips notifications when no new activity is recorded."""
+
+    message_handler = AsyncMock(return_value=None)
+
+    activity_stats_service = Mock()
+    activity_stats_service.get_current_streak = AsyncMock()
+
+    activity_notifier = Mock()
+    activity_notifier.notify = AsyncMock()
+
+    message = Mock()
+    message.guild.id = 999
+    message.author.id = 12345
+    message.created_at = datetime(
+        2026, 10, 14, 2, 0, tzinfo=timezone.utc
+    )
+    message.content = "Hello!"
+
+    gateway = DiscordGateway(
+        bot_token="test-token",
+        message_handler=message_handler,
+        streak_command=Mock(),
+        membership_service=Mock(),
+        membership_repository=Mock(),
+        activity_stats_service=activity_stats_service,
+        activity_notifier=activity_notifier,
+    )
+
+    await gateway.on_message(message)
+
+    activity_stats_service.get_current_streak.assert_not_awaited()
+    activity_notifier.notify.assert_not_awaited()

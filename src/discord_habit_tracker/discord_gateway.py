@@ -51,6 +51,8 @@ class DiscordGateway:
         streak_command,
         membership_repository,
         membership_service,
+        activity_stats_service,
+        activity_notifier,
     ):
         """Initialize the Discord gateway."""
 
@@ -58,6 +60,8 @@ class DiscordGateway:
         self._message_handler = message_handler
         self._membership_repository = membership_repository
         self._membership_service = membership_service
+        self._activity_stats_service = activity_stats_service
+        self._activity_notifier = activity_notifier
 
         intents = discord.Intents.default()
         intents.messages = True
@@ -159,7 +163,22 @@ class DiscordGateway:
             timestamp=message.created_at,
         )
 
-        await self._message_handler(event)
+        activity = await self._message_handler(event)
+
+        if activity is None:
+            return
+
+        current_streak = await self._activity_stats_service.get_current_streak(
+            activity.guild_id,
+            activity.user_id,
+            activity.activity_date,
+        )
+
+        await self._activity_notifier.notify(
+            message.guild,
+            user_id=activity.user_id,
+            current_streak=current_streak,
+        )
 
     async def on_ready(self):
         """Handle the Discord client becoming ready."""
