@@ -2,7 +2,7 @@
 
 A production-quality Discord bot that automatically tracks daily activity and habit streaks.
 
-> **Current Status:** 🚧 Phase 5 – Membership Management Complete — Phase 6: Activity Logging Next
+> **Current Status:** 🚧 Phase 6 — Activity Logging Complete — Phase 7: Activity History & Statistics In Progress
 
 ## Project Roadmap
 ```
@@ -56,9 +56,10 @@ PHASE 5 — Membership Management
 └── ✅ Live Discord command verification
 
 PHASE 6 — Activity Logging
-├── ⬜ #daily-streak channel logging
-├── ⬜ Automatic channel creation
-└── ⬜ Guild-scoped activity notifications
+PHASE 6 — Activity Logging
+├── ✅ #daily-streak channel logging
+├── ✅ Automatic channel creation
+└── ✅ Guild-scoped activity notifications
 
 PHASE 7 — Activity History & Statistics
 ├── ⬜ Date-range history
@@ -164,7 +165,38 @@ ActivityStatsService
 
 The Discord command adapter handles Discord interaction details while StreakCommand, ActivityStatsService, and StreakService remain independent of Discord.
 
-Guild Scoping
+## Activity Notification Flow
+
+When a message results in a newly recorded ActivityEvent, the Discord gateway retrieves the user’s updated streak through ActivityStatsService and delegates the announcement to DiscordActivityNotifier.
+
+```
+Discord Message
+       |
+       v
+DiscordGateway
+       |
+       v
+EventListener
+       |
+       v
+New ActivityEvent?
+       |
+       v
+ActivityStatsService
+       |
+       v
+DiscordActivityNotifier
+       |
+       v
+#daily-streak
+```
+
+Notifications are sent only when the event listener reports newly recorded activity. Messages that do not produce a new activity record do not trigger notifications.
+
+DiscordActivityNotifier handles finding or creating the guild’s activity channel and formatting the notification. The gateway coordinates the flow without implementing the notification formatting itself.
+
+
+## Guild Scoping
 
 Activity and membership are scoped by both:
 
@@ -186,6 +218,7 @@ Guild B
 ```
 
 A user’s activity in Guild A does not affect their streak in Guild B.
+
 
 ## Components
 
@@ -240,16 +273,6 @@ It supports:
 The membership service coordinates membership operations and validates timezone selections before updating stored preferences.
 
 Discord slash-command adapters expose membership operations through /streak join, /streak leave, and /streak timezone.
-
-### Activity Qualification Service
-
-Responsible for determining whether an incoming event qualifies as activity.
-
-The current implementation uses a deliberately simple rule:
-
-* Every message from a tracker member qualifies as activity
-
-The service is isolated from the Event Listener so qualification rules can evolve independently.
 
 ### Activity Qualification Service
 
@@ -411,7 +434,6 @@ Responsible for loading and validating application configuration.
 Current configuration includes:
 
 * Discord bot token
-* Configured timezone
 
 Environment variables are loaded from .env, while .env.example documents the required configuration without containing real credentials.
 
@@ -631,13 +653,15 @@ Timezone Management
 
 ### Phase 6 — Activity Logging
 
-Planned work:
-
-* Create or locate a #daily-streak channel per guild
-* Automatically create the channel if it does not exist
-* Post activity logging messages
-* Keep Discord channel operations isolated from activity-domain logic
-* Test activity logging behavior
+* ✅ Create or locate a #daily-streak channel per guild
+* ✅ Automatically create the channel if it does not exist
+* ✅ Announce newly recorded daily activity
+* ✅ Include the user’s current streak in activity notifications
+* ✅ Keep Discord channel operations isolated in DiscordActivityNotifier
+* ✅ Use a Discord user mention, falling back to the user ID when the member is not cached
+* ✅ Notify only when new daily activity is recorded
+* ✅ Calculate the updated streak using the recorded activity date
+* ✅ Test notification delivery, channel creation, gateway integration, and application dependency wiring
 
 ### Phase 7 — Activity History & Statistics
 
@@ -668,7 +692,6 @@ Additional functionality will be introduced as requirements emerge rather than a
 ## Before starting the bot, configure the required environment variables in .env:
 
 DISCORD_TOKEN=your_bot_token
-DISCORD_TRACKED_USER_TIMEZONE=your_timezone
 
 The configured timezone is used as the default timezone for the application. Individual members can subsequently select their own timezone through /streak timezone.
 
@@ -712,7 +735,7 @@ The project favors simple designs that can evolve as requirements become clearer
 
 The project uses pytest and pytest-asyncio for automated testing.
 
-Current test suite: 108 tests passing ✅
+Current test suite: 116 tests passing ✅
 
 Testing currently covers:
 
@@ -748,6 +771,11 @@ Testing currently covers:
 * Timezone update behaviour
 * Membership command invocation
 * Discord membership-command registration
+* Discord activity notification delivery
+* Automatic activity-channel creation
+* Notifications for newly recorded daily activity
+* Suppression of notifications when no new activity is recorded
+* Fallback mentions for uncached Discord members
 
 Tests are organized into unit and integration tests.
 
@@ -756,37 +784,38 @@ tests/
 ├── integration/
 │   ├── test_main.py
 │   └── test_message_flow.py
-├── unit/
-│   ├── adapters/
-│   │   └── test_discord_gateway.py
-│   ├── commands/
-│   │   ├── test_discord_streak_join_slash_command.py
-│   │   ├── test_discord_streak_leave_slash_command.py
-│   │   ├── test_discord_streak_slash_command.py
-│   │   ├── test_discord_timezone_select.py
-│   │   ├── test_streak_command.py
-│   │   └── test_timezone_select_view.py
-│   ├── models/
-│   │   ├── test_activity_event.py
-│   │   ├── test_message_event.py
-│   │   └── test_tracker_member.py
-│   ├── repositories/
-│   │   ├── test_activity_repository.py
-│   │   ├── test_membership_repository.py
-│   │   ├── test_sqlite_activity_repository.py
-│   │   └── test_sqlite_membership_repository.py
-│   ├── services/
-│   │   ├── test_activity_date_resolver.py
-│   │   ├── test_activity_qualification.py
-│   │   ├── test_activity_stats_service.py
-│   │   ├── test_current_date_resolver.py
-│   │   ├── test_membership_service.py
-│   │   └── test_streak_service.py
-│   ├── test_config.py
-│   └── test_event_listener.py
-├── test_activity.py
-├── test_database.py
-└── test_timezones.py
+└── unit/
+    ├── adapters/
+    │   ├── test_discord_activity_notifier.py
+    │   └── test_discord_gateway.py
+    ├── commands/
+    │   ├── test_discord_streak_join_slash_command.py
+    │   ├── test_discord_streak_leave_slash_command.py
+    │   ├── test_discord_streak_slash_command.py
+    │   ├── test_discord_streak_timezone_slash_command.py
+    │   ├── test_discord_timezone_select.py
+    │   ├── test_streak_command.py
+    │   ├── test_timezone_select_view.py
+    │   └── test_timezone_update_select.py
+    ├── models/
+    │   ├── test_activity_event.py
+    │   ├── test_message_event.py
+    │   └── test_tracker_member.py
+    ├── repositories/
+    │   ├── test_activity_repository.py
+    │   ├── test_membership_repository.py
+    │   ├── test_sqlite_activity_repository.py
+    │   └── test_sqlite_membership_repository.py
+    ├── services/
+    │   ├── test_activity_date_resolver.py
+    │   ├── test_activity_qualification.py
+    │   ├── test_activity_stats_service.py
+    │   ├── test_current_date_resolver.py
+    │   ├── test_membership_service.py
+    │   └── test_streak_service.py
+    ├── test_config.py
+    ├── test_event_listener.py
+    └── test_timezones.py
 ```
 
 The test suite is expanded alongside new functionality to ensure existing behavior remains intact.
@@ -795,18 +824,23 @@ The test suite is expanded alongside new functionality to ensure existing behavi
 
 ```
 discord-habit-tracker/
+├── data/
+│   └── activity_tracker.db
 ├── src/
 │   └── discord_habit_tracker/
+│       ├── adapters/
+│       │   └── discord_activity_notifier.py
 │       ├── commands/
-│       │   ├── __init__.py
 │       │   ├── discord_streak_join_slash_command.py
 │       │   ├── discord_streak_leave_slash_command.py
 │       │   ├── discord_streak_slash_command.py
+│       │   ├── discord_streak_timezone_slash_command.py
 │       │   ├── discord_timezone_select.py
+│       │   ├── discord_timezone_update_select.py
 │       │   ├── streak_command.py
-│       │   └── timezone_select_view.py
+│       │   ├── timezone_select_view.py
+│       │   └── timezone_update_select_view.py
 │       ├── models/
-│       │   ├── __init__.py
 │       │   ├── activity_event.py
 │       │   ├── message_event.py
 │       │   └── tracker_member.py
@@ -829,51 +863,27 @@ discord-habit-tracker/
 │       ├── event_listener.py
 │       ├── main.py
 │       └── timezones.py
-│
 ├── tests/
 │   ├── integration/
 │   │   ├── test_main.py
 │   │   └── test_message_flow.py
-│   ├── unit/
-│   │   ├── adapters/
-│   │   │   └── test_discord_gateway.py
-│   │   ├── commands/
-│   │   │   ├── test_discord_streak_join_slash_command.py
-│   │   │   ├── test_discord_streak_leave_slash_command.py
-│   │   │   ├── test_discord_streak_slash_command.py
-│   │   │   ├── test_discord_timezone_select.py
-│   │   │   ├── test_streak_command.py
-│   │   │   └── test_timezone_select_view.py
-│   │   ├── models/
-│   │   │   ├── test_activity_event.py
-│   │   │   ├── test_message_event.py
-│   │   │   └── test_tracker_member.py
-│   │   ├── repositories/
-│   │   │   ├── test_activity_repository.py
-│   │   │   ├── test_membership_repository.py
-│   │   │   ├── test_sqlite_activity_repository.py
-│   │   │   └── test_sqlite_membership_repository.py
-│   │   ├── services/
-│   │   │   ├── test_activity_date_resolver.py
-│   │   │   ├── test_activity_qualification.py
-│   │   │   ├── test_activity_stats_service.py
-│   │   │   ├── test_current_date_resolver.py
-│   │   │   ├── test_membership_service.py
-│   │   │   └── test_streak_service.py
-│   │   ├── test_config.py
-│   │   └── test_event_listener.py
-│   ├── test_activity.py
-│   ├── test_database.py
-│   └── test_timezones.py
-│
-├── data/
-│   └── activity_tracker.db
-│
-├── .env
-├── .env.example
-├── .gitignore
-├── requirements.txt
-└── README.md
+│   └── unit/
+│       ├── adapters/
+│       │   ├── test_discord_activity_notifier.py
+│       │   └── test_discord_gateway.py
+│       ├── commands/
+│       │   └── ...
+│       ├── models/
+│       │   └── ...
+│       ├── repositories/
+│       │   └── ...
+│       ├── services/
+│       │   └── ...
+│       ├── test_config.py
+│       └── test_event_listener.py
+├── pyproject.toml
+├── readme.md
+└── requirements.txt
 ```
 
 The project structure will evolve as additional components are introduced.
