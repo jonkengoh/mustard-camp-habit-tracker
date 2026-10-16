@@ -134,3 +134,111 @@ async def test_different_guilds_are_tracked_separately():
         12345,
         activity_date,
     )
+
+
+async def test_activity_dates_can_be_retrieved_within_date_range():
+    """Return only activity dates within the inclusive date range."""
+
+    repository = ActivityRepository()
+
+    for activity_date in (
+        date(2026, 10, 1),
+        date(2026, 10, 3),
+        date(2026, 10, 5),
+        date(2026, 10, 8),
+    ):
+        await repository.record(
+            ActivityEvent(
+                guild_id=999,
+                user_id=12345,
+                activity_date=activity_date,
+            )
+        )
+
+    result = await repository.get_activity_dates_in_range(
+        999,
+        12345,
+        date(2026, 10, 3),
+        date(2026, 10, 5),
+    )
+
+    assert result == {
+        date(2026, 10, 3),
+        date(2026, 10, 5),
+    }
+
+
+async def test_activity_date_range_does_not_include_other_users_or_guilds():
+    """Return only dates belonging to the specified user and guild."""
+
+    repository = ActivityRepository()
+
+    activity_date = date(2026, 10, 3)
+
+    for guild_id, user_id in (
+        (999, 12345),
+        (999, 67890),
+        (1000, 12345),
+    ):
+        await repository.record(
+            ActivityEvent(
+                guild_id=guild_id,
+                user_id=user_id,
+                activity_date=activity_date,
+            )
+        )
+
+    result = await repository.get_activity_dates_in_range(
+        999,
+        12345,
+        date(2026, 10, 1),
+        date(2026, 10, 5),
+    )
+
+    assert result == {activity_date}
+
+
+async def test_activity_date_range_returns_empty_set_when_no_activity_matches():
+    """Return an empty set when no dates fall within the range."""
+
+    repository = ActivityRepository()
+
+    await repository.record(
+        ActivityEvent(
+            guild_id=999,
+            user_id=12345,
+            activity_date=date(2026, 10, 1),
+        )
+    )
+
+    result = await repository.get_activity_dates_in_range(
+        999,
+        12345,
+        date(2026, 10, 3),
+        date(2026, 10, 5),
+    )
+
+    assert result == set()
+
+
+async def test_activity_date_range_returns_empty_set_when_start_is_after_end():
+    """Return an empty set for an invalid date range."""
+
+    repository = ActivityRepository()
+
+    await repository.record(
+        ActivityEvent(
+            guild_id=999,
+            user_id=12345,
+            activity_date=date(2026, 10, 3),
+        )
+    )
+
+    result = await repository.get_activity_dates_in_range(
+        999,
+        12345,
+        date(2026, 10, 5),
+        date(2026, 10, 1),
+    )
+
+    assert result == set()

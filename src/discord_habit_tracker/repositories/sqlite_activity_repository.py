@@ -101,3 +101,38 @@ class SQLiteActivityRepository:
 
         self._connection.close()
         self._connection = None
+
+
+    async def get_activity_dates_in_range(
+        self,
+        guild_id: int,
+        user_id: int,
+        start_date: date,
+        end_date: date,
+    ) -> set[date]:
+        """Return recorded activity dates within an inclusive date range."""
+
+        if start_date > end_date:
+            return set()
+
+        cursor = self._connection.execute(
+            """
+            SELECT activity_date
+            FROM activities
+            WHERE guild_id = ?
+              AND user_id = ?
+              AND activity_date >= ?
+              AND activity_date <= ?
+            """,
+            (
+                guild_id,
+                user_id,
+                start_date.isoformat(),
+                end_date.isoformat(),
+            ),
+        )
+
+        return {
+            date.fromisoformat(row[0])
+            for row in cursor.fetchall()
+        }

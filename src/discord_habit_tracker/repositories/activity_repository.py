@@ -32,6 +32,7 @@ class ActivityRepository:
 
         return (guild_id, user_id, activity_date) in self._activities
 
+
     async def get_activity_dates(
         self,
         guild_id: int,
@@ -45,5 +46,28 @@ class ActivityRepository:
             if (
                 stored_guild_id == guild_id
                 and stored_user_id == user_id
+            )
+        }
+
+
+    async def get_activity_dates_in_range(
+        self,
+        guild_id: int,
+        user_id: int,
+        start_date: date,
+        end_date: date,
+    ) -> set[date]:
+        """Return recorded activity dates within an inclusive date range."""
+
+        if start_date > end_date:
+            return set()
+
+        return {
+            activity_date
+            for stored_guild_id, stored_user_id, activity_date in self._activities
+            if (
+                stored_guild_id == guild_id
+                and stored_user_id == user_id
+                and start_date <= activity_date <= end_date
             )
         }
