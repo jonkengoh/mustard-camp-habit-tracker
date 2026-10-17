@@ -33,6 +33,10 @@ from discord_habit_tracker.commands.discord_streak_timezone_slash_command import
     DiscordStreakTimezoneSlashCommand,
 )
 
+from discord_habit_tracker.commands.discord_history_slash_command import (
+    DiscordHistorySlashCommand,
+)
+
 from discord_habit_tracker.models.message_event import MessageEvent
 from discord_habit_tracker.services.current_date_resolver import CurrentDateResolver
 
@@ -49,6 +53,7 @@ class DiscordGateway:
         bot_token: str,
         message_handler,
         streak_command,
+        history_command,
         membership_repository,
         membership_service,
         activity_stats_service,
@@ -58,6 +63,7 @@ class DiscordGateway:
 
         self._bot_token = bot_token
         self._message_handler = message_handler
+        self._history_command = history_command
         self._membership_repository = membership_repository
         self._membership_service = membership_service
         self._activity_stats_service = activity_stats_service
@@ -92,6 +98,12 @@ class DiscordGateway:
             self._membership_service,
         )
 
+        self._history_slash_command = DiscordHistorySlashCommand(
+            self._history_command,
+            CurrentDateResolver(),
+            self._membership_repository,
+        )
+
         streak_group = discord.app_commands.Group(
             name="streak",
             description="Manage your activity streak.",
@@ -109,6 +121,20 @@ class DiscordGateway:
         async def leave(interaction: discord.Interaction):
             await self._streak_leave_slash_command.handle(interaction)
 
+        async def history(
+            interaction: discord.Interaction,
+            days: discord.app_commands.Range[int, 1, 30] = 7,
+        ):
+            await self._history_slash_command.handle(interaction, days)
+
+
+        history_command = discord.app_commands.Command(
+            name="history",
+            description="Show your recent daily activity history.",
+            callback=history,
+        )
+
+        self._tree.add_command(history_command)
 
         streak_group.add_command(
             discord.app_commands.Command(

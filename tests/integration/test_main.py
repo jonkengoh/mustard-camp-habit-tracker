@@ -16,6 +16,7 @@ async def test_main_wires_application_dependencies(monkeypatch):
     mock_streak_service = Mock()
     mock_stats_service = Mock()
     mock_streak_command = Mock()
+    mock_history_command = Mock()
     mock_gateway = Mock()
     mock_membership_repository = Mock()
     mock_membership_service = Mock()
@@ -31,6 +32,7 @@ async def test_main_wires_application_dependencies(monkeypatch):
     streak_service_mock = Mock(return_value=mock_streak_service)
     activity_stats_service_mock = Mock(return_value=mock_stats_service)
     streak_command_mock = Mock(return_value=mock_streak_command)
+    history_command_mock = Mock(return_value=mock_history_command)
     gateway_mock = Mock(return_value=mock_gateway)
     sqlite_membership_repository_mock = Mock(return_value=mock_membership_repository)
     membership_service_mock = Mock(return_value=mock_membership_service)
@@ -46,6 +48,7 @@ async def test_main_wires_application_dependencies(monkeypatch):
     monkeypatch.setattr(main, "StreakService", streak_service_mock)
     monkeypatch.setattr(main,"ActivityStatsService", activity_stats_service_mock)
     monkeypatch.setattr(main, "StreakCommand", streak_command_mock)
+    monkeypatch.setattr(main, "HistoryCommand", history_command_mock)
     monkeypatch.setattr(main, "DiscordGateway", gateway_mock)
     monkeypatch.setattr(main, "DiscordActivityNotifier", activity_notifier_mock)
 
@@ -86,10 +89,15 @@ async def test_main_wires_application_dependencies(monkeypatch):
         mock_stats_service,
     )
 
+    history_command_mock.assert_called_once_with(
+        mock_repository,
+    )
+
     gateway_mock.assert_called_once_with(
         "test-token",
         mock_listener.handle_message,
         mock_streak_command,
+        mock_history_command,
         mock_membership_repository,
         mock_membership_service,
         activity_stats_service=mock_stats_service,

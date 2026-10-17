@@ -21,7 +21,7 @@ from discord_habit_tracker.adapters.discord_activity_notifier import DiscordActi
 
 # Commands
 from discord_habit_tracker.commands.streak_command import StreakCommand
-
+from discord_habit_tracker.commands.history_command import HistoryCommand
 
 
 async def main():
@@ -59,6 +59,10 @@ async def main():
         activity_stats_service,
     )
 
+    history_command = HistoryCommand(
+        activity_repository,
+    )
+
     # Initialize the event listener and Discord gateway
     listener = EventListener(
         activity_repository,
@@ -71,6 +75,7 @@ async def main():
         config.bot_token,
         listener.handle_message,
         streak_command,
+        history_command,
         membership_repository,
         membership_service,
         activity_stats_service=activity_stats_service,

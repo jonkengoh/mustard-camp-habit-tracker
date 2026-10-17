@@ -7,6 +7,7 @@ import discord
 from discord_habit_tracker.discord_gateway import DiscordGateway
 from discord_habit_tracker.models.message_event import MessageEvent
 from discord_habit_tracker.models.activity_event import ActivityEvent
+from discord_habit_tracker.models.tracker_member import TrackerMember
 
 
 def test_gateway_initializes():
@@ -16,6 +17,7 @@ def test_gateway_initializes():
         "test-token",
         message_handler=Mock(),
         streak_command=Mock(),
+        history_command=Mock(),
         membership_service=Mock(),
         membership_repository=Mock(),
         activity_stats_service=Mock(),
@@ -32,6 +34,7 @@ def test_gateway_creates_discord_client():
         "test-token",
         message_handler=Mock(),
         streak_command=Mock(),
+        history_command=Mock(),
         membership_service=Mock(),
         membership_repository=Mock(),
         activity_stats_service=Mock(),
@@ -48,6 +51,7 @@ def test_gateway_enables_message_content_intent():
         "test-token",
         message_handler=Mock(),
         streak_command=Mock(),
+        history_command=Mock(),
         membership_service=Mock(),
         membership_repository=Mock(),
         activity_stats_service=Mock(),
@@ -64,6 +68,7 @@ async def test_gateway_starts_client():
         "test-token",
         message_handler=Mock(),
         streak_command=Mock(),
+        history_command=Mock(),
         membership_service=Mock(),
         membership_repository=Mock(),
         activity_stats_service=Mock(),
@@ -99,6 +104,7 @@ def test_on_message_registers_client_event(monkeypatch):
         bot_token="test-token",
         message_handler=Mock(),
         streak_command=Mock(),
+        history_command=Mock(),
         membership_service=Mock(),
         membership_repository=Mock(),
         activity_stats_service=Mock(),
@@ -135,6 +141,7 @@ async def test_translate_forward_discord_message():
         "test-token",
         mock_handler,
         streak_command=Mock(),
+        history_command=Mock(),
         membership_service=Mock(),
         membership_repository=Mock(),
         activity_stats_service=Mock(),
@@ -155,6 +162,7 @@ def test_discord_gateway_registers_streak_command():
         bot_token="test-token",
         message_handler=Mock(),
         streak_command=streak_command,
+        history_command=Mock(),
         membership_service=Mock(),
         membership_repository=Mock(),
         activity_stats_service=Mock(),
@@ -163,11 +171,12 @@ def test_discord_gateway_registers_streak_command():
 
     registered_commands = gateway._tree.get_commands()
 
-    assert len(registered_commands) == 1
+    assert len(registered_commands) == 2
 
-    command = registered_commands[0]
-
-    assert command.name == "streak"
+    assert {command.name for command in registered_commands} == {
+        "streak",
+        "history",
+    }
 
 
 async def test_discord_gateway_streak_command_delegates_to_handler():
@@ -178,6 +187,7 @@ async def test_discord_gateway_streak_command_delegates_to_handler():
         bot_token="test-token",
         message_handler=Mock(),
         streak_command=streak_command,
+        history_command=Mock(),
         membership_service=Mock(),
         membership_repository=Mock(),
         activity_stats_service=Mock(),
@@ -214,6 +224,7 @@ async def test_gateway_syncs_application_commands():
         bot_token="test-token",
         message_handler=Mock(),
         streak_command=Mock(),
+        history_command=Mock(),
         membership_service=Mock(),
         membership_repository=Mock(),
         activity_stats_service=Mock(),
@@ -235,6 +246,7 @@ def test_streak_command_contains_join_subcommand():
         bot_token="test-token",
         message_handler=Mock(),
         streak_command=Mock(),
+        history_command=Mock(),
         membership_service=membership_service,
         membership_repository=Mock(),
         activity_stats_service=Mock(),
@@ -266,6 +278,7 @@ def test_streak_command_contains_leave_subcommand():
         bot_token="test-token",
         message_handler=Mock(),
         streak_command=Mock(),
+        history_command=Mock(),
         membership_service=membership_service,
         membership_repository=Mock(),
         activity_stats_service=Mock(),
@@ -296,6 +309,7 @@ async def test_discord_gateway_leave_command_delegates_to_handler():
         bot_token="test-token",
         message_handler=Mock(),
         streak_command=Mock(),
+        history_command=Mock(),
         membership_service=Mock(),
         membership_repository=Mock(),
         activity_stats_service=Mock(),
@@ -331,6 +345,7 @@ def test_gateway_injects_membership_repository_into_streak_command():
         bot_token="test-token",
         message_handler=Mock(),
         streak_command=Mock(),
+        history_command=Mock(),
         membership_repository=membership_repository,
         membership_service=Mock(),
         activity_stats_service=Mock(),
@@ -345,6 +360,7 @@ def test_streak_command_contains_timezone_subcommand():
         bot_token="test-token",
         message_handler=Mock(),
         streak_command=Mock(),
+        history_command=Mock(),
         membership_service=Mock(),
         membership_repository=Mock(),
         activity_stats_service=Mock(),
@@ -375,6 +391,7 @@ async def test_discord_gateway_timezone_command_delegates_to_handler():
         bot_token="test-token",
         message_handler=Mock(),
         streak_command=Mock(),
+        history_command=Mock(),
         membership_service=Mock(),
         membership_repository=Mock(),
         activity_stats_service=Mock(),
@@ -436,6 +453,7 @@ async def test_gateway_notifies_when_new_activity_is_recorded():
         bot_token="test-token",
         message_handler=message_handler,
         streak_command=Mock(),
+        history_command=Mock(),
         membership_service=Mock(),
         membership_repository=Mock(),
         activity_stats_service=activity_stats_service,
@@ -480,6 +498,7 @@ async def test_gateway_does_not_notify_when_no_new_activity_is_recorded():
         bot_token="test-token",
         message_handler=message_handler,
         streak_command=Mock(),
+        history_command=Mock(),
         membership_service=Mock(),
         membership_repository=Mock(),
         activity_stats_service=activity_stats_service,
@@ -490,3 +509,82 @@ async def test_gateway_does_not_notify_when_no_new_activity_is_recorded():
 
     activity_stats_service.get_current_streak.assert_not_awaited()
     activity_notifier.notify.assert_not_awaited()
+
+
+def test_discord_gateway_registers_history_command():
+    """Test that /history is registered with the correct argument bounds."""
+    gateway = DiscordGateway(
+        bot_token="test-token",
+        message_handler=Mock(),
+        streak_command=Mock(),
+        history_command=Mock(),
+        membership_service=Mock(),
+        membership_repository=Mock(),
+        activity_stats_service=Mock(),
+        activity_notifier=Mock(),
+    )
+
+    registered_commands = gateway._tree.get_commands()
+    command = next(
+        command
+        for command in registered_commands
+        if command.name == "history"
+    )
+
+    assert command.description == "Show your recent daily activity history."
+
+    days_parameter = next(
+        parameter
+        for parameter in command.parameters
+        if parameter.name == "days"
+    )
+
+    assert days_parameter.default == 7
+    assert days_parameter.min_value == 1
+    assert days_parameter.max_value == 30
+
+
+async def test_discord_gateway_history_command_delegates_to_handler():
+    """Test that /history delegates to the history slash-command handler."""
+    history_command = AsyncMock()
+
+    membership_repository = Mock()
+    membership_repository.get_member = AsyncMock(
+        return_value=TrackerMember(
+            guild_id=999,
+            user_id=12345,
+            timezone="Asia/Singapore",
+        )
+    )
+
+    gateway = DiscordGateway(
+        bot_token="test-token",
+        message_handler=Mock(),
+        streak_command=Mock(),
+        history_command=history_command,
+        membership_service=Mock(),
+        membership_repository=membership_repository,
+        activity_stats_service=Mock(),
+        activity_notifier=Mock(),
+    )
+
+    gateway._history_slash_command.handle = AsyncMock()
+
+    registered_commands = gateway._tree.get_commands()
+    command = next(
+        command
+        for command in registered_commands
+        if command.name == "history"
+    )
+
+    interaction = Mock()
+    interaction.guild.id = 999
+    interaction.user.id = 12345
+    interaction.response.send_message = AsyncMock()
+
+    await command.callback(interaction, days=14)
+
+    gateway._history_slash_command.handle.assert_awaited_once_with(
+        interaction,
+        14,
+    )
