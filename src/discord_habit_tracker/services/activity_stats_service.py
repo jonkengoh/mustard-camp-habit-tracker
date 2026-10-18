@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 
 
 class ActivityStatsService:
@@ -45,3 +45,33 @@ class ActivityStatsService:
         return self._streak_service.calculate_longest_streak(
             activity_dates,
         )
+
+
+    async def get_recent_activity_stats(
+        self,
+        guild_id: int,
+        user_id: int,
+        current_date: date,
+    ) -> dict:
+        """Return activity statistics for the last 30 calendar days."""
+
+        start_date = current_date - timedelta(days=29)
+
+        activity_dates = (
+            await self._activity_repository.get_activity_dates_in_range(
+                guild_id,
+                user_id,
+                start_date,
+                current_date,
+            )
+        )
+
+        total_days = 30
+        active_days = len(activity_dates)
+        activity_rate = active_days / total_days * 100
+
+        return {
+            "active_days": active_days,
+            "total_days": total_days,
+            "activity_rate": activity_rate,
+        }

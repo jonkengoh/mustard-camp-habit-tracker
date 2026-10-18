@@ -29,7 +29,18 @@ class StreakCommand:
             )
         )
 
+        recent_stats = (
+            await self._activity_stats_service.get_recent_activity_stats(
+                guild_id,
+                user_id,
+                current_date,
+            )
+        )
+
         return (
             f"Current streak: {current_streak} days\n"
-            f"Longest streak: {longest_streak} days"
+            f"Longest streak: {longest_streak} days\n"
+            f"Last 30 days: {recent_stats['active_days']}/"
+            f"{recent_stats['total_days']} active days "
+            f"({recent_stats['activity_rate']:.1f}%)"
         )
