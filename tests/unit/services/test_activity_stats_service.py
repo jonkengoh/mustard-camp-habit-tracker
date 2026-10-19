@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 from unittest.mock import AsyncMock, Mock
 
 import pytest
@@ -134,3 +134,63 @@ async def test_activity_stats_service_calculates_recent_activity_stats():
         date(2026, 9, 19),
         date(2026, 10, 18),
     )
+
+
+@pytest.mark.asyncio
+async def test_activity_stats_service_returns_zero_for_no_recent_activity():
+    """Test recent activity statistics when no activity was recorded."""
+
+    activity_repository = Mock()
+    activity_repository.get_activity_dates_in_range = AsyncMock(
+        return_value=set()
+    )
+
+    streak_service = Mock()
+
+    service = ActivityStatsService(activity_repository, streak_service)
+
+    result = await service.get_recent_activity_stats(
+        guild_id=999,
+        user_id=12345,
+        current_date=date(2026, 10, 18),
+    )
+
+    assert result == {
+        "active_days": 0,
+        "total_days": 30,
+        "activity_rate": pytest.approx(0.0),
+    }
+
+
+@pytest.mark.asyncio
+async def test_activity_stats_service_returns_full_rate_for_daily_activity():
+    """Test recent activity statistics when every day was active."""
+
+    current_date = date(2026, 10, 18)
+    start_date = current_date - timedelta(days=29)
+
+    activity_dates = {
+        start_date + timedelta(days=day)
+        for day in range(30)
+    }
+
+    activity_repository = Mock()
+    activity_repository.get_activity_dates_in_range = AsyncMock(
+        return_value=activity_dates
+    )
+
+    streak_service = Mock()
+
+    service = ActivityStatsService(activity_repository, streak_service)
+
+    result = await service.get_recent_activity_stats(
+        guild_id=999,
+        user_id=12345,
+        current_date=current_date,
+    )
+
+    assert result == {
+        "active_days": 30,
+        "total_days": 30,
+        "activity_rate": pytest.approx(100.0),
+    }
