@@ -42,25 +42,6 @@ def test_current_streak_stops_at_missing_activity_date():
     assert result == 2
 
 
-def test_current_streak_is_zero_when_there_is_no_activity_today():
-    """Test that the current streak is zero when today has no activity."""
-
-    service = StreakService()
-
-    activity_dates = {
-        date(2026, 9, 15),
-        date(2026, 9, 16),
-        date(2026, 9, 17),
-    }
-
-    result = service.calculate_current_streak(
-        activity_dates,
-        date(2026, 9, 18),
-    )
-
-    assert result == 0
-
-
 def test_current_streak_is_zero_when_there_is_no_activity():
     """Test that the current streak is zero when there is no activity."""
 
@@ -115,5 +96,43 @@ def test_longest_streak_is_zero_when_there_is_no_activity():
     service = StreakService()
 
     result = service.calculate_longest_streak(set())
+
+    assert result == 0
+
+
+def test_current_streak_preserves_streak_when_active_yesterday():
+    """Test that the current streak continues through yesterday."""
+
+    service = StreakService()
+
+    activity_dates = {
+        date(2026, 10, 16),
+        date(2026, 10, 17),
+        date(2026, 10, 18),
+    }
+
+    result = service.calculate_current_streak(
+        activity_dates,
+        date(2026, 10, 19),
+    )
+
+    assert result == 3
+
+
+def test_current_streak_is_zero_when_last_activity_was_before_yesterday():
+    """Test that a streak expires when activity stops before yesterday."""
+
+    service = StreakService()
+
+    activity_dates = {
+        date(2026, 10, 15),
+        date(2026, 10, 16),
+        date(2026, 10, 17),
+    }
+
+    result = service.calculate_current_streak(
+        activity_dates,
+        date(2026, 10, 19),
+    )
 
     assert result == 0

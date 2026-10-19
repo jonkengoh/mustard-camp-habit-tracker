@@ -14,6 +14,9 @@ class StreakService:
         streak = 0
         date_to_check = current_date
 
+        if date_to_check not in activity_dates:
+            date_to_check -= timedelta(days=1)
+
         while date_to_check in activity_dates:
             streak += 1
             date_to_check -= timedelta(days=1)
