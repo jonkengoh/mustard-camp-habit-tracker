@@ -2,7 +2,7 @@
 
 A production-quality Discord bot that automatically tracks daily activity and habit streaks.
 
-> **Current Status:** 🚧 Phase 6 — Activity Logging Complete — Phase 7: Activity History & Statistics In Progress
+> **Current Status:** ✅ Phase 7 — Activity History & Statistics Complete · 🚧 Phase 8 — Daily Streak Reminders In Progress
 
 ## Project Roadmap
 ```
@@ -56,42 +56,53 @@ PHASE 5 — Membership Management
 └── ✅ Live Discord command verification
 
 PHASE 6 — Activity Logging
-PHASE 6 — Activity Logging
 ├── ✅ #daily-streak channel logging
 ├── ✅ Automatic channel creation
 └── ✅ Guild-scoped activity notifications
 
 PHASE 7 — Activity History & Statistics
-├── ⬜ Date-range history
-├── ⬜ /history command
-├── ⬜ Basic statistics
-├── ⬜ /stats command
-└── ⬜ Additional activity metrics
+├── ✅ Date-range activity queries
+├── ✅ /history command
+├── ✅ Current and longest streak statistics
+├── ✅ Recent activity count and rate
+└── ✅ One-day current-streak grace period
+
+PHASE 8 — Daily Streak Reminders
+├── ⬜ Reminder opt-in and opt-out
+├── ⬜ Configurable reminder channel
+├── ⬜ Timezone-aware daily scheduling
+├── ⬜ Remind eligible users with an active streak
+├── ⬜ Avoid duplicate reminders per local calendar day
+├── ⬜ Handle bot downtime and missed reminders
+└── ⬜ Test scheduling, persistence, and delivery
 
 FUTURE EXPANSION
 ├── ⬜ Multiple habits
-├── ⬜ Configurable qualification rules
-├── ⬜ Notifications
-├── ⬜ Statistics / heatmaps
+├── ⬜ Configurable activity qualification rules
+├── ⬜ Statistics and heatmaps
 ├── ⬜ Achievements
 └── ⬜ Web dashboard
 ```
 
 ## Overview
 
-The Personal Discord Habit & Activity Tracker is a Discord bot designed to track daily activity and calculate activity streaks.
+The Personal Discord Habit & Activity Tracker is a Discord bot that records daily activity, calculates activity streaks, and provides activity history and statistics for participating members.
 
 The project began as a single-user tracker and has evolved into a guild-scoped, multi-user activity tracking system.
 
-Each Discord server maintains its own tracker membership and activity history. A user’s activity in one server is therefore independent from their activity in another server.
+Each Discord server maintains its own tracker membership and activity history. A user’s activity and streak in one server are independent of their activity and streak in another server.
+
+Members can configure their own timezones, allowing activity dates and streak calculations to follow their local calendar days.
 
 The current activity rule is intentionally simple:
 
-Any message sent by a tracker member qualifies as activity.
+* Any message sent by a tracker member qualifies as activity.
+* Only the first qualifying message from a member on a given local calendar day is recorded.
+* Newly recorded daily activity is announced in the guild’s #daily-streak channel.
 
-Only the first qualifying message from a member on a given local calendar day is recorded.
+The bot provides current and longest streak statistics through `/streak`, as well as date-range activity history and activity rates through `/history`.
 
-The project is being developed incrementally with an emphasis on clean architecture, testability, dependency injection, and small focused changes.
+The project is developed incrementally, with an emphasis on clean architecture, testability, dependency injection, and small, focused changes.
 
 
 ## Architecture
@@ -128,15 +139,15 @@ EventListener
       SQLite Storage
 ```
 
-The Discord gateway is responsible only for translating Discord-specific events into application-level events. The Event Listener coordinates application behavior, while domain services handle qualification, date resolution, and streak calculations.
+The Discord gateway translates Discord-specific events into application-level events. The Event Listener coordinates activity processing, while domain services handle activity qualification, date resolution, and streak calculations.
 
-Activity is persisted using SQLite. The repository abstracts storage operations from the rest of the application.
+Activity and membership data are persisted using SQLite. Repository interfaces abstract storage operations from the rest of the application, allowing in-memory implementations to be used for lightweight tests.
 
-The statistics layer retrieves activity history through the repository and delegates streak calculations to the Streak Service.
+The statistics layer retrieves activity history through the activity repository and delegates streak calculations to the Streak Service. Application-level command handlers implement command behavior independently of Discord, while Discord slash-command adapters handle interactions and responses.
 
-The Discord command layer follows the same separation principle: Discord interactions are handled by an adapter, while command behavior is implemented independently of Discord.
+Activity notifications are handled by DiscordActivityNotifier, which manages the guild’s #daily-streak channel and formats announcements when new daily activity is recorded.
 
-This separation keeps Discord-specific details, application orchestration, business logic, and persistence independently testable.
+This separation keeps Discord-specific communication, application orchestration, business logic, and persistence independently testable.
 
 ## Streak Flow
 
@@ -487,21 +498,21 @@ Keeping dependency wiring in the composition root prevents construction logic fr
 * ✅ Start the Discord client
 * ✅ Register on_message handler
 * ✅ Register on_ready handler
-* ✅ Translate Discord messages into ```MessageEvent```
+* ✅ Translate Discord messages into MessageEvent
 * ✅ Forward events to the application layer
 * ✅ Keep Discord-specific logic isolated to the Gateway
 
 #### Event Listener
 
 * ✅ Create EventListener
-* ✅ Receive application-level ```MessageEvent``` objects
+* ✅ Receive application-level MessageEvent objects
 * ✅ Check guild membership
 * ✅ Filter messages by tracked user
 * ✅ Ignore non-members
 * ✅ Delegate activity qualification
 * ✅ Resolve activity date
 * ✅ Check whether activity already exists for the event date
-* ✅ Convert qualifying messages into ```ActivityEvent``` objects
+* ✅ Convert qualifying messages into ActivityEvent objects
 * ✅ Record the first qualifying activity of the day
 
 #### Activity Qualification
@@ -514,37 +525,38 @@ Keeping dependency wiring in the composition root prevents construction logic fr
 
 #### Activity Domain Model
 
-* ✅ Create ```ActivityEvent```
+* ✅ Create ActivityEvent
 * ✅ Add guild context to activity events
-* ✅ Represent activity using guild, user and calendar date
+* ✅ Represent activity using guild, user, and calendar date
 * ✅ Separate domain activity from Discord message details
-* ✅ Add ```ActivityEvent``` tests
+* ✅ Add ActivityEvent tests
 
 #### Activity Repository
 
-* ✅ Create in-memory ```ActivityRepository```
-* ✅ Record ```ActivityEvent``` instances
+* ✅ Create in-memory ActivityRepository
+* ✅ Record ActivityEvent instances
 * ✅ Query activity for a given date
 * ✅ Retrieve activity dates for a user
 * ✅ Use in-memory storage for lightweight tests
 * ✅ Add SQLite persistence
-* ✅ Enforce one activity per guild, user and calendar date
+* ✅ Enforce one activity per guild, user, and calendar date
 * ✅ Test persistence across repository instances
 * ✅ Test database lifecycle and cleanup
 
-#### Timezone-Aware Activity Dates
+Timezone-Aware Activity Dates
 
 * ✅ Create ActivityDateResolver
 * ✅ Resolve timestamps using IANA timezones
-* ✅ Load tracked timezone from configuration
+* ✅ Load the default timezone from configuration
 * ✅ Integrate date resolution into Event Listener
 * ✅ Test timezone-specific date boundaries
 
 #### Application Wiring
+
 * ✅ Create application composition root
-* ✅ Inject ```ActivityRepository``` into Event Listener
-* ✅ Inject ```MembershipRepository``` into Event Listener
-* ✅ Inject ```ActivityQualificationService``` into Event Listener
+* ✅ Inject ActivityRepository into Event Listener
+* ✅ Inject MembershipRepository into Event Listener
+* ✅ Inject ActivityQualificationService into Event Listener
 * ✅ Inject Activity Date Resolver
 * ✅ Inject Event Listener into Discord Gateway
 * ✅ Start the Gateway from the application entry point
@@ -558,7 +570,9 @@ Keeping dependency wiring in the composition root prevents construction logic fr
 * ✅ Add repository support for retrieving activity dates
 * ✅ Return activity dates for a specific user
 * ✅ Test activity date retrieval
-* ⬜ Add date-range history queries
+* ✅ Add date-range activity queries
+* ✅ Scope history queries by guild and user
+* ✅ Test date-range query behavior
 
 #### Streak Engine
 
@@ -582,14 +596,14 @@ Keeping dependency wiring in the composition root prevents construction logic fr
 
 #### Streak Command
 
-* ✅ Create ```StreakCommand```
+* ✅ Create StreakCommand
 * ✅ Keep command behavior independent of Discord
-* ✅ Create ```DiscordStreakSlashCommand``` adapter
-* ✅ Create ```CurrentDateResolver```
-* ✅ Register ```/streak``` application command
+* ✅ Create DiscordStreakSlashCommand adapter
+* ✅ Create CurrentDateResolver
+* ✅ Register /streak application command
 * ✅ Synchronize application commands with Discord
 * ✅ Test command registration and invocation
-* ✅ Verify ```/streak``` against live Discord activity
+* ✅ Verify /streak against live Discord activity
 
 #### Live Activity Tracking
 
@@ -598,7 +612,7 @@ Keeping dependency wiring in the composition root prevents construction logic fr
 * ✅ Verify Discord Gateway connection
 * ✅ Verify Discord message events are received
 * ✅ Verify activity is persisted from live Discord messages
-* ✅ Verify ```/streak``` reads persisted activity
+* ✅ Verify /streak reads persisted activity
 
 ### Phase 4 — Guild-Scoped Tracking
 
@@ -621,11 +635,9 @@ Keeping dependency wiring in the composition root prevents construction logic fr
 * ✅ Replace global tracked-user filtering with membership checks
 * ✅ Remove obsolete tracked-user configuration
 
-The current membership implementation is in-memory. Membership persistence and lifecycle commands are planned as the next development milestone.
-
 ### Phase 5 — Membership Management
 
-Persistent Membership
+#### Persistent Membership
 
 * ✅ Add SQLite-backed membership storage
 * ✅ Persist guild and user membership
@@ -633,7 +645,7 @@ Persistent Membership
 * ✅ Support membership lookup and removal
 * ✅ Test membership persistence
 
-Membership Commands
+#### Membership Commands
 
 * ✅ Add /streak join
 * ✅ Add /streak leave
@@ -644,7 +656,7 @@ Membership Commands
 * ✅ Preserve activity history when membership is removed
 * ✅ Verify commands against a live Discord server
 
-Timezone Management
+#### Timezone Management
 
 * ✅ Provide a curated timezone selection
 * ✅ Validate timezone selections
@@ -665,24 +677,48 @@ Timezone Management
 
 ### Phase 7 — Activity History & Statistics
 
+#### Activity History
+
+* ✅ Add date-range activity queries
+* ✅ Implement /history
+* ✅ Support a default seven-day history period
+* ✅ Allow history periods between 1 and 30 days
+* ✅ Display active and inactive days within the selected period
+* ✅ Calculate the activity rate for the selected period
+* ✅ Validate history command arguments
+* ✅ Require tracker membership to access personal history
+* ✅ Test history command behavior
+
+#### Streak Statistics
+
+* ✅ Display current and longest streaks through /streak
+* ✅ Display recent activity count and activity rate
+* ✅ Preserve the current streak through a one-day grace period
+* ✅ Return a zero current streak when the grace period has elapsed
+* ✅ Test streak calculations and recent activity statistics
+
+### Phase 8 — Daily Streak Reminders
+
 Planned work:
 
-* Add date-range activity queries
-* Add /history
-* Add basic statistics
-* Add /stats
-* Add additional activity metrics
-* Test new command behavior
+* ⬜ Allow members to opt in to daily streak reminders
+* ⬜ Allow members to opt out of reminders
+* ⬜ Configure a designated reminder channel for each guild
+* ⬜ Schedule reminders according to each member’s configured timezone
+* ⬜ Remind eligible members who have an active streak but have not recorded activity that day
+* ⬜ Include the member’s current streak in reminder messages
+* ⬜ Prevent duplicate reminders within the same local calendar day
+* ⬜ Handle bot downtime and missed reminder times
+* ⬜ Persist reminder preferences and delivery history across restarts
+* ⬜ Test reminder eligibility, scheduling, persistence, and delivery
 
-
-## Future Expansion
+### Future Expansion
 
 Potential future functionality includes:
 
 * Multiple habits
-* Configurable qualification rules
-* Notifications
-* Statistics and heatmaps
+* Configurable activity qualification rules
+* Statistics and activity heatmaps
 * Achievements
 * Web dashboard
 
@@ -735,49 +771,34 @@ The project favors simple designs that can evolve as requirements become clearer
 
 The project uses pytest and pytest-asyncio for automated testing.
 
-Current test suite: 116 tests passing ✅
+Current test suite: 140 tests passing ✅
 
-Testing currently covers:
+Testing covers:
 
 * Configuration loading and validation
-* Discord Gateway initialization and startup
-* Discord event handler registration
-* Discord message translation
-* Event Listener behavior
-* Guild membership filtering
-* Multiple-user activity processing
-* Activity qualification
-* First-activity-of-the-day detection
-* MessageEvent behavior
-* ActivityEvent behavior
-* In-memory Activity Repository behavior
-* In-memory Membership Repository behavior
-* SQLite Activity Repository behavior
-* Guild-scoped activity persistence
-* Activity persistence across repository instances
-* Activity date retrieval
-* Timezone-aware activity date resolution
-* Current date resolution
-* Application dependency wiring
-* Message-flow integration
-* Current streak calculation
-* Longest streak calculation
-* Activity statistics coordination
-* Streak command behavior
-* Discord streak command invocation
-* Discord application command registration
-* SQLite membership repository behaviour
-* Membership service validation and lifecycle
-* Timezone update behaviour
-* Membership command invocation
-* Discord membership-command registration
-* Discord activity notification delivery
-* Automatic activity-channel creation
-* Notifications for newly recorded daily activity
-* Suppression of notifications when no new activity is recorded
+* Discord Gateway initialization, startup, and event-handler registration
+* Discord message translation and application-level event processing
+* Guild membership filtering and multi-user activity processing
+* Activity qualification and first-activity-of-the-day detection
+* MessageEvent and ActivityEvent behavior
+* In-memory activity and membership repositories
+* SQLite activity and membership repositories
+* Guild-scoped persistence and persistence across repository instances
+* Activity-date retrieval and date-range queries
+* Timezone-aware activity-date and current-date resolution
+* Application dependency wiring and message-flow integration
+* Current and longest streak calculations, including the one-day grace period
+* Recent activity statistics and activity-rate calculations
+* Streak command behavior and Discord command invocation
+* Discord application-command registration
+* Membership service validation, lifecycle, and persistence
+* Timezone selection and update behavior
+* Activity history command behavior, including date-range validation and membership requirements
+* Activity notification delivery and automatic channel creation
+* Notification suppression when no new daily activity is recorded
 * Fallback mentions for uncached Discord members
 
-Tests are organized into unit and integration tests.
+Tests are organized into unit and integration tests. The suite is expanded alongside new functionality to verify new behavior and guard against regressions.
 
 ```text
 tests/
@@ -789,11 +810,13 @@ tests/
     │   ├── test_discord_activity_notifier.py
     │   └── test_discord_gateway.py
     ├── commands/
+    │   ├── test_discord_history_slash_command.py
     │   ├── test_discord_streak_join_slash_command.py
     │   ├── test_discord_streak_leave_slash_command.py
     │   ├── test_discord_streak_slash_command.py
     │   ├── test_discord_streak_timezone_slash_command.py
     │   ├── test_discord_timezone_select.py
+    │   ├── test_history_command.py
     │   ├── test_streak_command.py
     │   ├── test_timezone_select_view.py
     │   └── test_timezone_update_select.py
@@ -824,22 +847,24 @@ The test suite is expanded alongside new functionality to ensure existing behavi
 
 ```
 discord-habit-tracker/
-├── data/
-│   └── activity_tracker.db
 ├── src/
 │   └── discord_habit_tracker/
 │       ├── adapters/
 │       │   └── discord_activity_notifier.py
 │       ├── commands/
+│       │   ├── discord_history_slash_command.py
 │       │   ├── discord_streak_join_slash_command.py
 │       │   ├── discord_streak_leave_slash_command.py
 │       │   ├── discord_streak_slash_command.py
 │       │   ├── discord_streak_timezone_slash_command.py
 │       │   ├── discord_timezone_select.py
 │       │   ├── discord_timezone_update_select.py
+│       │   ├── history_command.py
 │       │   ├── streak_command.py
 │       │   ├── timezone_select_view.py
 │       │   └── timezone_update_select_view.py
+│       ├── data/
+│       │   └── activity_tracker.db
 │       ├── models/
 │       │   ├── activity_event.py
 │       │   ├── message_event.py
@@ -869,18 +894,13 @@ discord-habit-tracker/
 │   │   └── test_message_flow.py
 │   └── unit/
 │       ├── adapters/
-│       │   ├── test_discord_activity_notifier.py
-│       │   └── test_discord_gateway.py
 │       ├── commands/
-│       │   └── ...
 │       ├── models/
-│       │   └── ...
 │       ├── repositories/
-│       │   └── ...
 │       ├── services/
-│       │   └── ...
 │       ├── test_config.py
-│       └── test_event_listener.py
+│       ├── test_event_listener.py
+│       └── test_timezones.py
 ├── pyproject.toml
 ├── readme.md
 └── requirements.txt
