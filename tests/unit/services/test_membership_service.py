@@ -194,3 +194,24 @@ async def test_update_timezone_rejects_invalid_timezone():
         user_id=456,
         timezone="Asia/Singapore",
     )
+
+
+async def test_member_can_enable_reminders():
+    repository = MembershipRepository()
+    service = MembershipService(repository)
+
+    await service.join(
+        guild_id=999,
+        user_id=12345,
+        timezone="Asia/Singapore",
+    )
+
+    await service.set_reminders_enabled(
+        guild_id=999,
+        user_id=12345,
+        enabled=True,
+    )
+
+    member = await repository.get_member(999, 12345)
+
+    assert member.reminders_enabled is True

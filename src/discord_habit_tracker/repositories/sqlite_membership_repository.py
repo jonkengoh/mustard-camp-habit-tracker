@@ -15,12 +15,25 @@ class SQLiteMembershipRepository:
                 guild_id INTEGER NOT NULL,
                 user_id INTEGER NOT NULL,
                 timezone TEXT NOT NULL,
+                reminders_enabled INTEGER NOT NULL DEFAULT 0,
                 PRIMARY KEY (guild_id, user_id)
             )
             """
         )
 
+        cursor = self._connection.execute("PRAGMA table_info(members)")
+        columns = {row[1] for row in cursor.fetchall()}
+
+        if "reminders_enabled" not in columns:
+            self._connection.execute(
+                """
+                ALTER TABLE members
+                ADD COLUMN reminders_enabled INTEGER NOT NULL DEFAULT 0
+                """
+            )
+
         self._connection.commit()
+
 
     async def add_member(self, guild_id: int, user_id: int, timezone: str):
         """Add a user as a tracker member."""
@@ -44,7 +57,7 @@ class SQLiteMembershipRepository:
 
         cursor = self._connection.execute(
             """
-            SELECT guild_id, user_id, timezone
+            SELECT guild_id, user_id, timezone, reminders_enabled
             FROM members
             WHERE guild_id = ? AND user_id = ?
             """,
@@ -60,6 +73,7 @@ class SQLiteMembershipRepository:
             guild_id=row[0],
             user_id=row[1],
             timezone=row[2],
+            reminders_enabled=bool(row[3]),
         )
 
 
@@ -90,6 +104,25 @@ class SQLiteMembershipRepository:
             WHERE guild_id = ? AND user_id = ?
             """,
             (timezone, guild_id, user_id),
+        )
+        self._connection.commit()
+
+
+    async def set_reminders_enabled(
+        self,
+        guild_id: int,
+        user_id: int,
+        enabled: bool,
+    ) -> None:
+        """Update whether a member has opted into daily reminders."""
+
+        self._connection.execute(
+            """
+            UPDATE members
+            SET reminders_enabled = ?
+            WHERE guild_id = ? AND user_id = ?
+            """,
+            (int(enabled), guild_id, user_id),
         )
         self._connection.commit()
 

@@ -8,3 +8,4 @@ class TrackerMember:
     guild_id: int
     user_id: int
     timezone: str
+    reminders_enabled: bool = False

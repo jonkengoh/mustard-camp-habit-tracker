@@ -78,3 +78,25 @@ class MembershipService:
             user_id,
             timezone,
         )
+
+    async def set_reminders_enabled(
+        self,
+        guild_id: int,
+        user_id: int,
+        enabled: bool,
+    ):
+        """Update a member's daily reminder preference."""
+
+        existing_member = await self._membership_repository.get_member(
+            guild_id,
+            user_id,
+        )
+
+        if existing_member is None:
+            raise MemberNotFoundError
+
+        await self._membership_repository.set_reminders_enabled(
+            guild_id,
+            user_id,
+            enabled,
+        )

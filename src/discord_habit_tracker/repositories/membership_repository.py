@@ -52,4 +52,23 @@ class MembershipRepository:
             guild_id=member.guild_id,
             user_id=member.user_id,
             timezone=timezone,
+            reminders_enabled=member.reminders_enabled,
+        )
+
+
+    async def set_reminders_enabled(
+        self,
+        guild_id: int,
+        user_id: int,
+        enabled: bool,
+    ):
+        """Update whether a member has opted into daily reminders."""
+
+        member = self._members[(guild_id, user_id)]
+
+        self._members[(guild_id, user_id)] = TrackerMember(
+            guild_id=member.guild_id,
+            user_id=member.user_id,
+            timezone=member.timezone,
+            reminders_enabled=enabled,
         )

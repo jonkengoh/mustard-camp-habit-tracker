@@ -13,3 +13,15 @@ def test_tracker_member_stores_membership_details():
     assert member.guild_id == 999
     assert member.user_id == 12345
     assert member.timezone == "Asia/Singapore"
+
+
+def test_tracker_member_has_reminders_disabled_by_default():
+    """Test that reminder preferences default to disabled."""
+
+    member = TrackerMember(
+        guild_id=999,
+        user_id=12345,
+        timezone="Asia/Singapore",
+    )
+
+    assert member.reminders_enabled is False
