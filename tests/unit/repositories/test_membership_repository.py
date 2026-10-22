@@ -112,3 +112,90 @@ async def test_membership_repository_returns_none_for_missing_member():
     )
 
     assert result is None
+
+
+async def test_membership_repository_returns_members_with_reminders_enabled():
+    """Test that only members who opted in are returned."""
+
+    repository = MembershipRepository()
+
+    await repository.add_member(
+        guild_id=999,
+        user_id=12345,
+        timezone="Asia/Singapore",
+    )
+    await repository.add_member(
+        guild_id=999,
+        user_id=67890,
+        timezone="America/Los_Angeles",
+    )
+
+    await repository.set_reminders_enabled(
+        guild_id=999,
+        user_id=12345,
+        enabled=True,
+    )
+
+    result = await repository.get_members_with_reminders_enabled()
+
+    assert result == [
+        TrackerMember(
+            guild_id=999,
+            user_id=12345,
+            timezone="Asia/Singapore",
+            reminders_enabled=True,
+        )
+    ]
+
+
+async def test_membership_repository_returns_opted_in_members_across_guilds():
+    """Test that opted-in memberships in different guilds are preserved."""
+
+    repository = MembershipRepository()
+
+    await repository.add_member(
+        guild_id=999,
+        user_id=12345,
+        timezone="Asia/Singapore",
+    )
+    await repository.add_member(
+        guild_id=888,
+        user_id=12345,
+        timezone="America/Los_Angeles",
+    )
+
+    await repository.set_reminders_enabled(999, 12345, True)
+    await repository.set_reminders_enabled(888, 12345, True)
+
+    result = await repository.get_members_with_reminders_enabled()
+
+    assert set(result) == {
+        TrackerMember(
+            guild_id=999,
+            user_id=12345,
+            timezone="Asia/Singapore",
+            reminders_enabled=True,
+        ),
+        TrackerMember(
+            guild_id=888,
+            user_id=12345,
+            timezone="America/Los_Angeles",
+            reminders_enabled=True,
+        ),
+    }
+
+
+async def test_membership_repository_returns_empty_list_when_no_members_opted_in():
+    """Test that no members are returned when nobody opted in."""
+
+    repository = MembershipRepository()
+
+    await repository.add_member(
+        guild_id=999,
+        user_id=12345,
+        timezone="Asia/Singapore",
+    )
+
+    result = await repository.get_members_with_reminders_enabled()
+
+    assert result == []

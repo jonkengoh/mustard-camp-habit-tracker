@@ -304,3 +304,61 @@ async def test_existing_members_default_to_reminders_disabled(tmp_path):
     assert member is not None
     assert member.timezone == "Asia/Singapore"
     assert member.reminders_enabled is False
+
+
+async def test_get_members_with_reminders_enabled_excludes_opted_out_members():
+    """Test that only members who opted in are returned."""
+
+    repository = SQLiteMembershipRepository(":memory:")
+
+    await repository.add_member(999, 12345, "Asia/Singapore")
+    await repository.add_member(999, 67890, "America/Los_Angeles")
+
+    await repository.set_reminders_enabled(999, 12345, True)
+
+    result = await repository.get_members_with_reminders_enabled()
+
+    assert result == [
+        TrackerMember(
+            guild_id=999,
+            user_id=12345,
+            timezone="Asia/Singapore",
+            reminders_enabled=True,
+        )
+    ]
+
+
+async def test_get_members_with_reminders_enabled_preserves_guild_memberships():
+    """Test that opted-in memberships in different guilds remain distinct."""
+
+    repository = SQLiteMembershipRepository(":memory:")
+
+    await repository.add_member(999, 12345, "Asia/Singapore")
+    await repository.add_member(888, 12345, "America/Los_Angeles")
+
+    await repository.set_reminders_enabled(999, 12345, True)
+    await repository.set_reminders_enabled(888, 12345, True)
+
+    result = await repository.get_members_with_reminders_enabled()
+
+    assert len(result) == 2
+    assert {
+        (member.guild_id, member.user_id, member.timezone)
+        for member in result
+    } == {
+        (999, 12345, "Asia/Singapore"),
+        (888, 12345, "America/Los_Angeles"),
+    }
+    assert all(member.reminders_enabled for member in result)
+
+
+async def test_get_members_with_reminders_enabled_returns_empty_list_when_none_opted_in():
+    """Test that an empty list is returned when nobody opted in."""
+
+    repository = SQLiteMembershipRepository(":memory:")
+
+    await repository.add_member(999, 12345, "Asia/Singapore")
+
+    result = await repository.get_members_with_reminders_enabled()
+
+    assert result == []

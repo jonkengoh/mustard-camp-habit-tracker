@@ -127,6 +127,30 @@ class SQLiteMembershipRepository:
         self._connection.commit()
 
 
+    async def get_members_with_reminders_enabled(
+        self,
+    ) -> list[TrackerMember]:
+        """Return all members who have opted into daily reminders."""
+
+        cursor = self._connection.execute(
+            """
+            SELECT guild_id, user_id, timezone, reminders_enabled
+            FROM members
+            WHERE reminders_enabled = 1
+            """
+        )
+
+        return [
+            TrackerMember(
+                guild_id=row[0],
+                user_id=row[1],
+                timezone=row[2],
+                reminders_enabled=bool(row[3]),
+            )
+            for row in cursor.fetchall()
+        ]
+
+
     def close(self):
         """Close the database connection."""
 

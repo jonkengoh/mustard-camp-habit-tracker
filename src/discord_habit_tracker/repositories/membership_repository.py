@@ -72,3 +72,15 @@ class MembershipRepository:
             timezone=member.timezone,
             reminders_enabled=enabled,
         )
+
+
+    async def get_members_with_reminders_enabled(
+        self,
+    ) -> list[TrackerMember]:
+        """Return all members who have opted into daily reminders."""
+
+        return [
+            member
+            for member in self._members.values()
+            if member.reminders_enabled
+        ]
