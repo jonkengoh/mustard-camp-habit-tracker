@@ -79,6 +79,7 @@ class MembershipService:
             timezone,
         )
 
+
     async def set_reminders_enabled(
         self,
         guild_id: int,
