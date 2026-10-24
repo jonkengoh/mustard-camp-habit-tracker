@@ -24,6 +24,7 @@ class DailyReminderScheduler:
         self._reminder_time_resolver = (
             reminder_time_resolver or DefaultReminderTimeResolver()
         )
+        self._started_at = self._clock.now()
         self._delivery_window_seconds = delivery_window_seconds
     async def check_reminders(self) -> None:
         """Send reminders to eligible members whose scheduled time is due."""
@@ -33,6 +34,19 @@ class DailyReminderScheduler:
         for member in members:
             now = self._clock.now().astimezone(ZoneInfo(member.timezone))
             reminder_time = self._reminder_time_resolver.resolve(member)
+
+            scheduled_at = now.replace(
+                hour=reminder_time.hour,
+                minute=reminder_time.minute,
+                second=0,
+                microsecond=0,
+            )
+
+            started_at_local = self._started_at.astimezone(ZoneInfo(member.timezone))
+
+            if started_at_local >= scheduled_at:
+                continue
+
             if not self._is_within_delivery_window(now, reminder_time):
                 continue
             if not await self._eligibility_service.is_eligible(
