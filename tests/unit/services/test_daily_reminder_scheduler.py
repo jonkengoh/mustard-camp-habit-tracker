@@ -1,7 +1,9 @@
-import pytest
+import asyncio
 from datetime import datetime
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock, Mock, call
 from zoneinfo import ZoneInfo
+
+import pytest
 
 from discord_habit_tracker.models.tracker_member import TrackerMember
 from discord_habit_tracker.services.daily_reminder_scheduler import (
@@ -298,3 +300,47 @@ async def test_skips_reminder_when_scheduler_starts_after_scheduled_time():
 
     notifier.notify_reminder.assert_not_awaited()
     delivery_repository.record_delivery.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_run_repeats_checks_until_cancelled():
+    scheduler = DailyReminderScheduler.__new__(DailyReminderScheduler)
+    scheduler.check_reminders = AsyncMock()
+
+    sleep = AsyncMock(
+        side_effect=[None, asyncio.CancelledError],
+    )
+
+    scheduler._sleep = sleep
+    scheduler._interval_seconds = 30
+
+    with pytest.raises(asyncio.CancelledError):
+        await scheduler.run()
+
+    assert scheduler.check_reminders.await_count == 2
+    assert sleep.await_args_list == [
+        call(30),
+        call(30),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_run_continues_after_check_fails():
+    scheduler = DailyReminderScheduler.__new__(DailyReminderScheduler)
+
+    scheduler.check_reminders = AsyncMock(
+        side_effect=[RuntimeError("Temporary failure"), None],
+    )
+
+    sleep = AsyncMock(
+        side_effect=[None, asyncio.CancelledError],
+    )
+
+    scheduler._sleep = sleep
+    scheduler._interval_seconds = 30
+
+    with pytest.raises(asyncio.CancelledError):
+        await scheduler.run()
+
+    assert scheduler.check_reminders.await_count == 2
+    assert sleep.await_count == 2

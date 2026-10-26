@@ -1,5 +1,10 @@
 from datetime import time
 from zoneinfo import ZoneInfo
+import asyncio
+import logging
+
+logger = logging.getLogger(__name__)
+
 class DailyReminderScheduler:
     """Coordinates scheduled daily streak reminders."""
     def __init__(
@@ -13,6 +18,8 @@ class DailyReminderScheduler:
         clock,
         reminder_time_resolver=None,
         delivery_window_seconds: int = 60,
+        interval_seconds: int = 30,
+        sleep=asyncio.sleep,
     ):
         self._membership_repository = membership_repository
         self._eligibility_service = eligibility_service
@@ -26,6 +33,10 @@ class DailyReminderScheduler:
         )
         self._started_at = self._clock.now()
         self._delivery_window_seconds = delivery_window_seconds
+        self._interval_seconds = interval_seconds
+        self._sleep = sleep
+
+
     async def check_reminders(self) -> None:
         """Send reminders to eligible members whose scheduled time is due."""
         members = (
@@ -74,6 +85,20 @@ class DailyReminderScheduler:
                 member.user_id,
                 now.date().isoformat(),
             )
+
+    async def run(self) -> None:
+        """Periodically check for due reminders until cancelled."""
+
+        while True:
+            try:
+                await self.check_reminders()
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                logger.exception("Failed to check daily reminders.")
+
+            await self._sleep(self._interval_seconds)
+
     def _is_within_delivery_window(self, now, reminder_time) -> bool:
         """Return whether the local time is within the reminder delivery window."""
 
