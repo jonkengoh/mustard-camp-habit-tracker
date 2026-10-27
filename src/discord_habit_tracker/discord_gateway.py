@@ -18,6 +18,7 @@ This module contains no business logic.
 # =============================================================================
 
 import discord
+import asyncio
 
 from discord_habit_tracker.commands.discord_streak_slash_command import (
     DiscordStreakSlashCommand,
@@ -41,6 +42,7 @@ from discord_habit_tracker.models.message_event import MessageEvent
 from discord_habit_tracker.services.current_date_resolver import CurrentDateResolver
 
 
+
 # =============================================================================
 # Discord Gateway
 # =============================================================================
@@ -58,6 +60,7 @@ class DiscordGateway:
         membership_service,
         activity_stats_service,
         activity_notifier,
+        reminder_scheduler=None,
     ):
         """Initialize the Discord gateway."""
 
@@ -68,6 +71,8 @@ class DiscordGateway:
         self._membership_service = membership_service
         self._activity_stats_service = activity_stats_service
         self._activity_notifier = activity_notifier
+        self._reminder_scheduler = reminder_scheduler
+        self._reminder_task = None
 
         intents = discord.Intents.default()
         intents.messages = True
@@ -171,10 +176,30 @@ class DiscordGateway:
         self._tree.add_command(streak_group)
 
 
+    @property
+    def client(self):
+        """Expose the Discord client for application services."""
+        return self._client
+
+    def set_reminder_scheduler(self, reminder_scheduler):
+        """Set the scheduler responsible for daily streak reminders."""
+        self._reminder_scheduler = reminder_scheduler
+
+
     async def start(self):
         """Start the Discord client."""
 
-        await self._client.start(self._bot_token)
+        try:
+            await self._client.start(self._bot_token)
+        finally:
+            if self._reminder_task is not None:
+                self._reminder_task.cancel()
+
+                try:
+                    await self._reminder_task
+                except asyncio.CancelledError:
+                    pass
+
 
     async def on_message(self, message):
         """Translate a Discord message into an application event."""
@@ -210,6 +235,14 @@ class DiscordGateway:
         """Handle the Discord client becoming ready."""
 
         print(f"Logged in as {self._client.user}")
+
+        if (
+            self._reminder_scheduler is not None
+            and (self._reminder_task is None or self._reminder_task.done())
+        ):
+            self._reminder_task = asyncio.create_task(
+                self._reminder_scheduler.run()
+            )
 
     async def _setup_hook(self):
         """Sync application commands with Discord."""
