@@ -305,6 +305,11 @@ async def test_skips_reminder_when_scheduler_starts_after_scheduled_time():
 @pytest.mark.asyncio
 async def test_run_repeats_checks_until_cancelled():
     scheduler = DailyReminderScheduler.__new__(DailyReminderScheduler)
+    scheduler._clock = Mock()
+    scheduler._clock.now.return_value = datetime(
+        2026, 10, 25, 20, 0,
+        tzinfo=ZoneInfo("Asia/Singapore"),
+    )
     scheduler.check_reminders = AsyncMock()
 
     sleep = AsyncMock(
@@ -327,6 +332,11 @@ async def test_run_repeats_checks_until_cancelled():
 @pytest.mark.asyncio
 async def test_run_continues_after_check_fails():
     scheduler = DailyReminderScheduler.__new__(DailyReminderScheduler)
+    scheduler._clock = Mock()
+    scheduler._clock.now.return_value = datetime(
+        2026, 10, 25, 20, 0,
+        tzinfo=ZoneInfo("Asia/Singapore"),
+    )
 
     scheduler.check_reminders = AsyncMock(
         side_effect=[RuntimeError("Temporary failure"), None],
@@ -344,3 +354,69 @@ async def test_run_continues_after_check_fails():
 
     assert scheduler.check_reminders.await_count == 2
     assert sleep.await_count == 2
+
+
+@pytest.mark.asyncio
+async def test_skips_reminder_when_scheduler_starts_running_after_scheduled_time():
+    member = TrackerMember(
+        guild_id=123,
+        user_id=456,
+        timezone="Asia/Singapore",
+        reminders_enabled=True,
+    )
+
+    membership_repository = Mock()
+    membership_repository.get_members_with_reminders_enabled = AsyncMock(
+        return_value=[member]
+    )
+
+    eligibility_service = Mock()
+    eligibility_service.is_eligible = AsyncMock(return_value=True)
+
+    notifier = Mock()
+    notifier.notify_reminder = AsyncMock()
+
+    delivery_repository = Mock()
+    delivery_repository.record_delivery = AsyncMock()
+
+    discord_client = Mock()
+    discord_client.get_guild.return_value = Mock()
+
+    activity_stats_service = Mock()
+    activity_stats_service.get_current_streak = AsyncMock(return_value=4)
+
+    clock = Mock()
+    clock.now.return_value = datetime(
+        2026, 10, 25, 20, 59, 0,
+        tzinfo=ZoneInfo("Asia/Singapore"),
+    )
+
+    scheduler = DailyReminderScheduler(
+        membership_repository=membership_repository,
+        eligibility_service=eligibility_service,
+        notifier=notifier,
+        delivery_repository=delivery_repository,
+        discord_client=discord_client,
+        activity_stats_service=activity_stats_service,
+        clock=clock,
+    )
+
+    # Simulate Discord becoming ready after the scheduled reminder time.
+    clock.now.return_value = datetime(
+        2026, 10, 25, 21, 0, 30,
+        tzinfo=ZoneInfo("Asia/Singapore"),
+    )
+
+    # Start the scheduler after the scheduled reminder time.
+    task = asyncio.create_task(scheduler.run())
+
+    try:
+        # Allow the scheduler to perform its first check.
+        await asyncio.sleep(0)
+    finally:
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+    notifier.notify_reminder.assert_not_awaited()
+    delivery_repository.record_delivery.assert_not_awaited()

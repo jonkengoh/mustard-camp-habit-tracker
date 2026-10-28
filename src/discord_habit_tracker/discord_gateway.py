@@ -17,8 +17,8 @@ This module contains no business logic.
 # Imports
 # =============================================================================
 
-import discord
 import asyncio
+import discord
 
 from discord_habit_tracker.commands.discord_streak_slash_command import (
     DiscordStreakSlashCommand,

@@ -28,9 +28,7 @@ class DailyReminderScheduler:
         self._discord_client = discord_client
         self._activity_stats_service = activity_stats_service
         self._clock = clock
-        self._reminder_time_resolver = (
-            reminder_time_resolver or DefaultReminderTimeResolver()
-        )
+        self._reminder_time_resolver = reminder_time_resolver or DefaultReminderTimeResolver()
         self._started_at = self._clock.now()
         self._delivery_window_seconds = delivery_window_seconds
         self._interval_seconds = interval_seconds
@@ -88,6 +86,7 @@ class DailyReminderScheduler:
 
     async def run(self) -> None:
         """Periodically check for due reminders until cancelled."""
+        self._started_at = self._clock.now()
 
         while True:
             try:
