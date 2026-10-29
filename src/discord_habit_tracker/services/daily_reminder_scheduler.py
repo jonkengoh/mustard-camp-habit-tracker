@@ -58,11 +58,20 @@ class DailyReminderScheduler:
 
             if not self._is_within_delivery_window(now, reminder_time):
                 continue
+
+            if await self._delivery_repository.has_delivery(
+                member.guild_id,
+                member.user_id,
+                now.date().isoformat(),
+            ):
+                continue
+
             if not await self._eligibility_service.is_eligible(
                 member.guild_id,
                 member.user_id,
             ):
                 continue
+
             guild = self._discord_client.get_guild(member.guild_id)
             if guild is None:
                 continue

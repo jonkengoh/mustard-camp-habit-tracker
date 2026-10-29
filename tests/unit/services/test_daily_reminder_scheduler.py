@@ -33,6 +33,7 @@ async def test_sends_and_records_reminder_for_eligible_member_at_scheduled_time(
     notifier.notify_reminder = AsyncMock()
 
     delivery_repository = Mock()
+    delivery_repository.has_delivery = AsyncMock(return_value=False)
     delivery_repository.record_delivery = AsyncMock()
 
     guild = Mock()
@@ -103,6 +104,7 @@ async def test_skips_reminder_when_member_is_not_eligible():
     notifier.notify_reminder = AsyncMock()
 
     delivery_repository = Mock()
+    delivery_repository.has_delivery = AsyncMock(return_value=False)
     delivery_repository.record_delivery = AsyncMock()
 
     discord_client = Mock()
@@ -162,6 +164,7 @@ async def test_does_not_record_delivery_when_notification_fails():
     )
 
     delivery_repository = Mock()
+    delivery_repository.has_delivery = AsyncMock(return_value=False)
     delivery_repository.record_delivery = AsyncMock()
 
     guild = Mock()
@@ -418,5 +421,69 @@ async def test_skips_reminder_when_scheduler_starts_running_after_scheduled_time
         with pytest.raises(asyncio.CancelledError):
             await task
 
+    notifier.notify_reminder.assert_not_awaited()
+    delivery_repository.record_delivery.assert_not_awaited()
+
+
+async def test_skips_reminder_when_delivery_has_already_been_recorded():
+    """Do not send another reminder if today's delivery is already recorded."""
+
+    member = TrackerMember(
+        guild_id=999,
+        user_id=12345,
+        timezone="Asia/Singapore",
+        reminders_enabled=True,
+    )
+
+    membership_repository = Mock()
+    membership_repository.get_members_with_reminders_enabled = AsyncMock(
+        return_value=[member],
+    )
+
+    eligibility_service = Mock()
+    eligibility_service.is_eligible = AsyncMock(return_value=True)
+
+    notifier = Mock()
+    notifier.notify_reminder = AsyncMock()
+
+    delivery_repository = Mock()
+    delivery_repository.has_delivery = AsyncMock(return_value=True)
+    delivery_repository.record_delivery = AsyncMock()
+
+    discord_client = Mock()
+    discord_client.get_guild.return_value = Mock(id=999)
+
+    clock = Mock()
+    clock.now.side_effect = [
+        datetime(
+            2026, 10, 25, 20, 59,
+            tzinfo=ZoneInfo("Asia/Singapore"),
+        ),
+        datetime(
+            2026, 10, 25, 21, 0,
+            tzinfo=ZoneInfo("Asia/Singapore"),
+        ),
+    ]
+
+    activity_stats_service = Mock()
+    activity_stats_service.get_current_streak = AsyncMock(return_value=4)
+
+    scheduler = DailyReminderScheduler(
+        membership_repository=membership_repository,
+        eligibility_service=eligibility_service,
+        notifier=notifier,
+        delivery_repository=delivery_repository,
+        discord_client=discord_client,
+        activity_stats_service=activity_stats_service,
+        clock=clock,
+    )
+
+    await scheduler.check_reminders()
+
+    delivery_repository.has_delivery.assert_awaited_once_with(
+        999,
+        12345,
+        "2026-10-25",
+    )
     notifier.notify_reminder.assert_not_awaited()
     delivery_repository.record_delivery.assert_not_awaited()
