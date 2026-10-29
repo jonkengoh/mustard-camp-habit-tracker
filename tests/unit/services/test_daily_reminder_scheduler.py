@@ -487,3 +487,60 @@ async def test_skips_reminder_when_delivery_has_already_been_recorded():
     )
     notifier.notify_reminder.assert_not_awaited()
     delivery_repository.record_delivery.assert_not_awaited()
+
+@pytest.mark.asyncio
+async def test_skips_reminder_when_first_check_occurs_after_scheduled_time():
+    member = TrackerMember(
+        guild_id=123,
+        user_id=456,
+        timezone="Asia/Singapore",
+        reminders_enabled=True,
+    )
+
+    membership_repository = Mock()
+    membership_repository.get_members_with_reminders_enabled = AsyncMock(
+        return_value=[member]
+    )
+
+    eligibility_service = Mock()
+    eligibility_service.is_eligible = AsyncMock(return_value=True)
+
+    notifier = Mock()
+    notifier.notify_reminder = AsyncMock()
+
+    delivery_repository = Mock()
+    delivery_repository.has_delivery = AsyncMock(return_value=False)
+    delivery_repository.record_delivery = AsyncMock()
+
+    discord_client = Mock()
+    discord_client.get_guild.return_value = Mock()
+
+    activity_stats_service = Mock()
+    activity_stats_service.get_current_streak = AsyncMock(return_value=4)
+
+    clock = Mock()
+    clock.now.side_effect = [
+        datetime(
+            2026, 10, 25, 20, 59,
+            tzinfo=ZoneInfo("Asia/Singapore"),
+        ),
+        datetime(
+            2026, 10, 25, 21, 0, 30,
+            tzinfo=ZoneInfo("Asia/Singapore"),
+        ),
+    ]
+
+    scheduler = DailyReminderScheduler(
+        membership_repository=membership_repository,
+        eligibility_service=eligibility_service,
+        notifier=notifier,
+        delivery_repository=delivery_repository,
+        discord_client=discord_client,
+        activity_stats_service=activity_stats_service,
+        clock=clock,
+    )
+
+    await scheduler.check_reminders()
+
+    notifier.notify_reminder.assert_not_awaited()
+    delivery_repository.record_delivery.assert_not_awaited()

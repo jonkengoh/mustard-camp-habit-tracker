@@ -56,6 +56,10 @@ class DailyReminderScheduler:
             if started_at_local >= scheduled_at:
                 continue
 
+            if now >= scheduled_at and self._started_at < scheduled_at:
+                if (now - scheduled_at).total_seconds() > 0:
+                    continue
+
             if not self._is_within_delivery_window(now, reminder_time):
                 continue
 
