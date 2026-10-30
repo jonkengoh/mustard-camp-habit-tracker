@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime
+from sched import scheduler
 from unittest.mock import AsyncMock, Mock, call
 from zoneinfo import ZoneInfo
 
@@ -44,14 +45,10 @@ async def test_sends_and_records_reminder_for_eligible_member_at_scheduled_time(
 
     clock = Mock()
     clock.now.side_effect = [
-        datetime(
-            2026, 10, 25, 20, 59,
-            tzinfo=ZoneInfo("Asia/Singapore"),
-        ),
-        datetime(
-            2026, 10, 25, 21, 0,
-            tzinfo=ZoneInfo("Asia/Singapore"),
-        ),
+        datetime(2026, 10, 25, 20, 59, tzinfo=ZoneInfo("Asia/Singapore")),
+        datetime(2026, 10, 25, 21, 0, tzinfo=ZoneInfo("Asia/Singapore")),
+        datetime(2026, 10, 25, 21, 0, tzinfo=ZoneInfo("Asia/Singapore")),
+        datetime(2026, 10, 25, 21, 0, tzinfo=ZoneInfo("Asia/Singapore")),
     ]
 
     activity_stats_service = Mock()
@@ -111,14 +108,10 @@ async def test_skips_reminder_when_member_is_not_eligible():
 
     clock = Mock()
     clock.now.side_effect = [
-        datetime(
-            2026, 10, 25, 20, 59,
-            tzinfo=ZoneInfo("Asia/Singapore"),
-        ),
-        datetime(
-            2026, 10, 25, 21, 0,
-            tzinfo=ZoneInfo("Asia/Singapore"),
-        ),
+        datetime(2026, 10, 25, 20, 59, tzinfo=ZoneInfo("Asia/Singapore")),
+        datetime(2026, 10, 25, 21, 0, tzinfo=ZoneInfo("Asia/Singapore")),
+        datetime(2026, 10, 25, 21, 0, tzinfo=ZoneInfo("Asia/Singapore")),
+        datetime(2026, 10, 25, 21, 0, tzinfo=ZoneInfo("Asia/Singapore")),
     ]
 
     activity_stats_service = Mock()
@@ -173,14 +166,10 @@ async def test_does_not_record_delivery_when_notification_fails():
 
     clock = Mock()
     clock.now.side_effect = [
-        datetime(
-            2026, 10, 25, 20, 59,
-            tzinfo=ZoneInfo("Asia/Singapore"),
-        ),
-        datetime(
-            2026, 10, 25, 21, 0,
-            tzinfo=ZoneInfo("Asia/Singapore"),
-        ),
+        datetime(2026, 10, 25, 20, 59, tzinfo=ZoneInfo("Asia/Singapore")),
+        datetime(2026, 10, 25, 21, 0, tzinfo=ZoneInfo("Asia/Singapore")),
+        datetime(2026, 10, 25, 21, 0, tzinfo=ZoneInfo("Asia/Singapore")),
+        datetime(2026, 10, 25, 21, 0, tzinfo=ZoneInfo("Asia/Singapore")),
     ]
 
     activity_stats_service = Mock()
@@ -196,8 +185,7 @@ async def test_does_not_record_delivery_when_notification_fails():
         clock=clock,
     )
 
-    with pytest.raises(RuntimeError, match="Discord send failed"):
-        await scheduler.check_reminders()
+    await scheduler.check_reminders()
 
     delivery_repository.record_delivery.assert_not_awaited()
 
@@ -455,14 +443,10 @@ async def test_skips_reminder_when_delivery_has_already_been_recorded():
 
     clock = Mock()
     clock.now.side_effect = [
-        datetime(
-            2026, 10, 25, 20, 59,
-            tzinfo=ZoneInfo("Asia/Singapore"),
-        ),
-        datetime(
-            2026, 10, 25, 21, 0,
-            tzinfo=ZoneInfo("Asia/Singapore"),
-        ),
+        datetime(2026, 10, 25, 20, 59, tzinfo=ZoneInfo("Asia/Singapore")),
+        datetime(2026, 10, 25, 21, 0, tzinfo=ZoneInfo("Asia/Singapore")),
+        datetime(2026, 10, 25, 21, 0, tzinfo=ZoneInfo("Asia/Singapore")),
+        datetime(2026, 10, 25, 21, 0, tzinfo=ZoneInfo("Asia/Singapore")),
     ]
 
     activity_stats_service = Mock()
@@ -520,14 +504,8 @@ async def test_skips_reminder_when_first_check_occurs_after_scheduled_time():
 
     clock = Mock()
     clock.now.side_effect = [
-        datetime(
-            2026, 10, 25, 20, 59,
-            tzinfo=ZoneInfo("Asia/Singapore"),
-        ),
-        datetime(
-            2026, 10, 25, 21, 0, 30,
-            tzinfo=ZoneInfo("Asia/Singapore"),
-        ),
+        datetime(2026, 10, 25, 20, 59, tzinfo=ZoneInfo("Asia/Singapore")),
+        datetime(2026, 10, 25, 21, 0, 30, tzinfo=ZoneInfo("Asia/Singapore")),
     ]
 
     scheduler = DailyReminderScheduler(
@@ -544,3 +522,73 @@ async def test_skips_reminder_when_first_check_occurs_after_scheduled_time():
 
     notifier.notify_reminder.assert_not_awaited()
     delivery_repository.record_delivery.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_continues_processing_members_when_notification_fails():
+    """Continue sending reminders to other members if one notification fails."""
+
+    members = [
+        TrackerMember(
+            guild_id=999,
+            user_id=user_id,
+            timezone="Asia/Singapore",
+            reminders_enabled=True,
+        )
+        for user_id in [111, 222, 333]
+    ]
+
+    membership_repository = Mock()
+    membership_repository.get_members_with_reminders_enabled = AsyncMock(
+        return_value=members,
+    )
+
+    eligibility_service = Mock()
+    eligibility_service.is_eligible = AsyncMock(return_value=True)
+
+    notifier = Mock()
+    notifier.notify_reminder = AsyncMock(
+        side_effect=[
+            RuntimeError("Discord send failed"),
+            None,
+            None,
+        ],
+    )
+
+    delivery_repository = Mock()
+    delivery_repository.has_delivery = AsyncMock(return_value=False)
+    delivery_repository.record_delivery = AsyncMock()
+
+    guild = Mock(id=999)
+    discord_client = Mock()
+    discord_client.get_guild.return_value = guild
+
+    clock = Mock()
+    clock.now.side_effect = [
+        datetime(2026, 10, 25, 20, 59, tzinfo=ZoneInfo("Asia/Singapore")),
+        datetime(2026, 10, 25, 21, 0, tzinfo=ZoneInfo("Asia/Singapore")),
+        datetime(2026, 10, 25, 21, 0, tzinfo=ZoneInfo("Asia/Singapore")),
+        datetime(2026, 10, 25, 21, 0, tzinfo=ZoneInfo("Asia/Singapore")),
+    ]
+
+    activity_stats_service = Mock()
+    activity_stats_service.get_current_streak = AsyncMock(return_value=4)
+
+    scheduler = DailyReminderScheduler(
+        membership_repository=membership_repository,
+        eligibility_service=eligibility_service,
+        notifier=notifier,
+        delivery_repository=delivery_repository,
+        discord_client=discord_client,
+        activity_stats_service=activity_stats_service,
+        clock=clock,
+    )
+
+    await scheduler.check_reminders()
+
+    assert notifier.notify_reminder.await_count == 3
+
+    assert delivery_repository.record_delivery.await_args_list == [
+        call(999, 222, "2026-10-25"),
+        call(999, 333, "2026-10-25"),
+    ]

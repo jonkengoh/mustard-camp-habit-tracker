@@ -41,61 +41,70 @@ class DailyReminderScheduler:
             await self._membership_repository.get_members_with_reminders_enabled()
         )
         for member in members:
-            now = self._clock.now().astimezone(ZoneInfo(member.timezone))
-            reminder_time = self._reminder_time_resolver.resolve(member)
+            try:
+                now = self._clock.now().astimezone(ZoneInfo(member.timezone))
+                reminder_time = self._reminder_time_resolver.resolve(member)
 
-            scheduled_at = now.replace(
-                hour=reminder_time.hour,
-                minute=reminder_time.minute,
-                second=0,
-                microsecond=0,
-            )
+                scheduled_at = now.replace(
+                    hour=reminder_time.hour,
+                    minute=reminder_time.minute,
+                    second=0,
+                    microsecond=0,
+                )
 
-            started_at_local = self._started_at.astimezone(ZoneInfo(member.timezone))
+                started_at_local = self._started_at.astimezone(ZoneInfo(member.timezone))
 
-            if started_at_local >= scheduled_at:
-                continue
-
-            if now >= scheduled_at and self._started_at < scheduled_at:
-                if (now - scheduled_at).total_seconds() > 0:
+                if started_at_local >= scheduled_at:
                     continue
 
-            if not self._is_within_delivery_window(now, reminder_time):
-                continue
+                if now >= scheduled_at and self._started_at < scheduled_at:
+                    if (now - scheduled_at).total_seconds() > 0:
+                        continue
 
-            if await self._delivery_repository.has_delivery(
-                member.guild_id,
-                member.user_id,
-                now.date().isoformat(),
-            ):
-                continue
+                if not self._is_within_delivery_window(now, reminder_time):
+                    continue
 
-            if not await self._eligibility_service.is_eligible(
-                member.guild_id,
-                member.user_id,
-            ):
-                continue
-
-            guild = self._discord_client.get_guild(member.guild_id)
-            if guild is None:
-                continue
-            current_streak = (
-                await self._activity_stats_service.get_current_streak(
+                if await self._delivery_repository.has_delivery(
                     member.guild_id,
                     member.user_id,
-                    now.date(),
+                    now.date().isoformat(),
+                ):
+                    continue
+
+                if not await self._eligibility_service.is_eligible(
+                    member.guild_id,
+                    member.user_id,
+                ):
+                    continue
+
+                guild = self._discord_client.get_guild(member.guild_id)
+                if guild is None:
+                    continue
+                current_streak = (
+                    await self._activity_stats_service.get_current_streak(
+                        member.guild_id,
+                        member.user_id,
+                        now.date(),
+                    )
                 )
-            )
-            await self._notifier.notify_reminder(
-                guild,
-                user_id=member.user_id,
-                current_streak=current_streak,
-            )
-            await self._delivery_repository.record_delivery(
-                member.guild_id,
-                member.user_id,
-                now.date().isoformat(),
-            )
+                await self._notifier.notify_reminder(
+                    guild,
+                    user_id=member.user_id,
+                    current_streak=current_streak,
+                )
+                await self._delivery_repository.record_delivery(
+                    member.guild_id,
+                    member.user_id,
+                    now.date().isoformat(),
+                )
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                logger.exception(
+                    "Failed to send daily reminder to user %s in guild %s.",
+                    member.user_id,
+                    member.guild_id,
+                )
 
     async def run(self) -> None:
         """Periodically check for due reminders until cancelled."""
