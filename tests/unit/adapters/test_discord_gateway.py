@@ -1,3 +1,5 @@
+import asyncio
+import pytest
 from datetime import date, datetime, timezone
 
 from unittest.mock import AsyncMock, Mock
@@ -588,3 +590,128 @@ async def test_discord_gateway_history_command_delegates_to_handler():
         interaction,
         14,
     )
+
+
+async def test_gateway_does_not_start_duplicate_reminder_tasks():
+    """Test that repeated on_ready events do not start duplicate reminder tasks."""
+
+    scheduler = Mock()
+    scheduler_started = asyncio.Event()
+    scheduler_wait = asyncio.Event()
+
+    async def run_scheduler():
+        scheduler_started.set()
+        await scheduler_wait.wait()
+
+    scheduler.run = run_scheduler
+
+    gateway = DiscordGateway(
+        "test-token",
+        message_handler=Mock(),
+        streak_command=Mock(),
+        history_command=Mock(),
+        membership_service=Mock(),
+        membership_repository=Mock(),
+        activity_stats_service=Mock(),
+        activity_notifier=Mock(),
+        reminder_scheduler=scheduler,
+    )
+
+    await gateway.on_ready()
+    first_task = gateway._reminder_task
+
+    await scheduler_started.wait()
+
+    await gateway.on_ready()
+
+    assert gateway._reminder_task is first_task
+    assert not first_task.done()
+
+    first_task.cancel()
+
+    with pytest.raises(asyncio.CancelledError):
+        await first_task
+
+
+async def test_gateway_cancels_reminder_task_on_shutdown():
+    """Test that the gateway cancels the reminder task when it shuts down."""
+
+    scheduler_started = asyncio.Event()
+    scheduler_cancelled = asyncio.Event()
+
+    async def run_scheduler():
+        scheduler_started.set()
+        try:
+            await asyncio.Event().wait()
+        except asyncio.CancelledError:
+            scheduler_cancelled.set()
+            raise
+
+    scheduler = Mock()
+    scheduler.run = run_scheduler
+
+    gateway = DiscordGateway(
+        "test-token",
+        message_handler=Mock(),
+        streak_command=Mock(),
+        history_command=Mock(),
+        membership_service=Mock(),
+        membership_repository=Mock(),
+        activity_stats_service=Mock(),
+        activity_notifier=Mock(),
+        reminder_scheduler=scheduler,
+    )
+
+    async def mock_client_start(token):
+        await gateway.on_ready()
+        await scheduler_started.wait()
+
+    gateway._client.start = AsyncMock(side_effect=mock_client_start)
+
+    await gateway.start()
+
+    assert scheduler_cancelled.is_set()
+    assert gateway._reminder_task.done()
+
+
+async def test_gateway_cancels_reminder_task_when_client_start_fails():
+    """Test that the gateway cleans up the reminder task if the Discord client fails."""
+
+    scheduler_started = asyncio.Event()
+    scheduler_cancelled = asyncio.Event()
+
+    async def run_scheduler():
+        scheduler_started.set()
+        try:
+            await asyncio.Event().wait()
+        except asyncio.CancelledError:
+            scheduler_cancelled.set()
+            raise
+
+    scheduler = Mock()
+    scheduler.run = run_scheduler
+
+    gateway = DiscordGateway(
+        "test-token",
+        message_handler=Mock(),
+        streak_command=Mock(),
+        history_command=Mock(),
+        membership_service=Mock(),
+        membership_repository=Mock(),
+        activity_stats_service=Mock(),
+        activity_notifier=Mock(),
+        reminder_scheduler=scheduler,
+    )
+
+    async def mock_client_start(token):
+        await gateway.on_ready()
+        await scheduler_started.wait()
+        raise RuntimeError("Discord client failed")
+
+    gateway._client.start = AsyncMock(side_effect=mock_client_start)
+
+    with pytest.raises(RuntimeError, match="Discord client failed"):
+        await gateway.start()
+
+    assert scheduler_cancelled.is_set()
+    assert gateway._reminder_task.done()
