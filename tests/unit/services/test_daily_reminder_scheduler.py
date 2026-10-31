@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 from sched import scheduler
 from unittest.mock import AsyncMock, Mock, call
 from zoneinfo import ZoneInfo
@@ -592,3 +592,71 @@ async def test_continues_processing_members_when_notification_fails():
         call(999, 222, "2026-10-25"),
         call(999, 333, "2026-10-25"),
     ]
+
+
+@pytest.mark.asyncio
+async def test_schedules_reminders_using_each_members_local_timezone():
+    members = [
+        TrackerMember(
+            guild_id=999,
+            user_id=111,
+            timezone="Asia/Singapore",
+            reminders_enabled=True,
+        ),
+        TrackerMember(
+            guild_id=999,
+            user_id=222,
+            timezone="Asia/Tokyo",
+            reminders_enabled=True,
+        ),
+    ]
+
+    membership_repository = Mock()
+    membership_repository.get_members_with_reminders_enabled = AsyncMock(
+        return_value=members
+    )
+
+    eligibility_service = Mock()
+    eligibility_service.is_eligible = AsyncMock(return_value=True)
+
+    notifier = Mock()
+    notifier.notify_reminder = AsyncMock()
+
+    delivery_repository = Mock()
+    delivery_repository.has_delivery = AsyncMock(return_value=False)
+    delivery_repository.record_delivery = AsyncMock()
+
+    guild = Mock(id=999)
+    discord_client = Mock()
+    discord_client.get_guild.return_value = guild
+
+    activity_stats_service = Mock()
+    activity_stats_service.get_current_streak = AsyncMock(return_value=4)
+
+    clock = Mock()
+    clock.now.side_effect = [
+        datetime(2026, 10, 25, 12, 59, tzinfo=timezone.utc),
+        datetime(2026, 10, 25, 13, 0, tzinfo=timezone.utc),
+        datetime(2026, 10, 25, 13, 0, tzinfo=timezone.utc),
+    ]
+
+    scheduler = DailyReminderScheduler(
+        membership_repository=membership_repository,
+        eligibility_service=eligibility_service,
+        notifier=notifier,
+        delivery_repository=delivery_repository,
+        discord_client=discord_client,
+        activity_stats_service=activity_stats_service,
+        clock=clock,
+    )
+
+    await scheduler.check_reminders()
+
+    notifier.notify_reminder.assert_awaited_once_with(
+        guild,
+        user_id=111,
+        current_streak=4,
+    )
+    delivery_repository.record_delivery.assert_awaited_once_with(
+        999, 111, "2026-10-25"
+    )
